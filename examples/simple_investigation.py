@@ -1,41 +1,57 @@
 """Run SongTrace's first deterministic investigation."""
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from songtrace.application.evidence_importer import EvidenceImporter
 from songtrace.application.observation_extractor import ObservationExtractor
+from songtrace.application.raw_evidence_record import RawEvidenceRecord
+from songtrace.application.raw_evidence_source import RawEvidenceSource
 from songtrace.application.simple_investigator import SimpleInvestigator
-from songtrace.domain.evidence import Evidence, EvidenceKind, EvidenceSignal
-from songtrace.domain.evidence_source import EvidenceSource
+from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+
+
+@dataclass(frozen=True, slots=True)
+class ExampleRawEvidenceSource:
+    """Small example source that supplies raw evidence records."""
+
+    observed_at: datetime
+
+    def load(self) -> tuple[RawEvidenceRecord, ...]:
+        """Load example evidence records in deterministic order."""
+
+        return (
+            RawEvidenceRecord(
+                source_name="spotify",
+                kind=EvidenceKind.PLAYLIST_ACTIVITY,
+                summary="Everything Is Fading received editorial playlist placement.",
+                observed_at=self.observed_at,
+                reference="spotify-playlist:dark-metal-editorial",
+                signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
+            ),
+            RawEvidenceRecord(
+                source_name="spotify",
+                kind=EvidenceKind.AUDIENCE_ACTIVITY,
+                summary="Streams increased 48% after the playlist placement.",
+                observed_at=self.observed_at,
+                reference="spotify-analytics:streams-week-2026-07-18",
+                signals=(EvidenceSignal.STREAM_GROWTH,),
+            ),
+            RawEvidenceRecord(
+                source_name="spotify",
+                kind=EvidenceKind.AUDIENCE_ACTIVITY,
+                summary="Save activity increased 31% after the playlist placement.",
+                observed_at=self.observed_at,
+                reference="spotify-analytics:saves-week-2026-07-18",
+                signals=(EvidenceSignal.SAVE_GROWTH,),
+            ),
+        )
 
 
 def main() -> None:
     observed_at = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
-    evidence = (
-        Evidence(
-            source=EvidenceSource("spotify"),
-            kind=EvidenceKind.PLAYLIST_ACTIVITY,
-            summary="Everything Is Fading received editorial playlist placement.",
-            observed_at=observed_at,
-            reference="spotify-playlist:dark-metal-editorial",
-            signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
-        ),
-        Evidence(
-            source=EvidenceSource("spotify"),
-            kind=EvidenceKind.AUDIENCE_ACTIVITY,
-            summary="Streams increased 48% after the playlist placement.",
-            observed_at=observed_at,
-            reference="spotify-analytics:streams-week-2026-07-18",
-            signals=(EvidenceSignal.STREAM_GROWTH,),
-        ),
-        Evidence(
-            source=EvidenceSource("spotify"),
-            kind=EvidenceKind.AUDIENCE_ACTIVITY,
-            summary="Save activity increased 31% after the playlist placement.",
-            observed_at=observed_at,
-            reference="spotify-analytics:saves-week-2026-07-18",
-            signals=(EvidenceSignal.SAVE_GROWTH,),
-        ),
-    )
+    source: RawEvidenceSource = ExampleRawEvidenceSource(observed_at=observed_at)
+    evidence = EvidenceImporter().import_records(source.load())
 
     observations = ObservationExtractor(clock=lambda: observed_at).extract(evidence)
     result = SimpleInvestigator().investigate(observations)

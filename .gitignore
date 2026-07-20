@@ -25,3 +25,7 @@ htmlcov/
 .zed/
 .vscode/
 .idea/
+
+.coverage
+coverage.xml
+htmlcov/

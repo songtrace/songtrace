@@ -20,6 +20,14 @@ class EvidenceKind(StrEnum):
     OTHER = "other"
 
 
+class EvidenceSignal(StrEnum):
+    """Structured signals that make evidence machine-interpretable."""
+
+    PLAYLIST_PLACEMENT = "playlist_placement"
+    SAVE_GROWTH = "save_growth"
+    STREAM_GROWTH = "stream_growth"
+
+
 @dataclass(frozen=True, slots=True)
 class Evidence:
     """An immutable fact collected during a song investigation.
@@ -34,6 +42,7 @@ class Evidence:
     observed_at: datetime
     occurred_at: datetime | None = None
     reference: str | None = None
+    signals: tuple[EvidenceSignal, ...] = ()
     id: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
@@ -50,3 +59,18 @@ class Evidence:
 
         if self.reference is not None and not self.reference.strip():
             raise ValueError("Evidence reference must not be empty when provided.")
+
+        if len(set(self.signals)) != len(self.signals):
+            raise ValueError("Evidence signals must not contain duplicates.")
+
+        for signal in self.signals:
+            if _expected_kind_for_signal(signal) is not self.kind:
+                raise ValueError("Evidence signal must be compatible with evidence kind.")
+
+
+def _expected_kind_for_signal(signal: EvidenceSignal) -> EvidenceKind:
+    match signal:
+        case EvidenceSignal.PLAYLIST_PLACEMENT:
+            return EvidenceKind.PLAYLIST_ACTIVITY
+        case EvidenceSignal.SAVE_GROWTH | EvidenceSignal.STREAM_GROWTH:
+            return EvidenceKind.AUDIENCE_ACTIVITY

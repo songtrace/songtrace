@@ -4,13 +4,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 from uuid import UUID, uuid4
+
+
+class ObservationKind(StrEnum):
+    """Provider-neutral categories of extracted observations."""
+
+    PLAYLIST_SAVE_GROWTH = "playlist_save_growth"
+    PLAYLIST_STREAM_GROWTH = "playlist_stream_growth"
 
 
 @dataclass(frozen=True, slots=True)
 class Observation:
     """A factual pattern or relationship supported by evidence."""
 
+    kind: ObservationKind
     summary: str
     supporting_evidence_ids: tuple[UUID, ...]
     observed_at: datetime

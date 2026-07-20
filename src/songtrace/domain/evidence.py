@@ -5,6 +5,8 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
+from songtrace.domain.evidence_source import EvidenceSource
+
 
 class EvidenceKind(StrEnum):
     """Provider-neutral categories of investigation evidence."""
@@ -26,7 +28,7 @@ class Evidence:
     Interpretation belongs to observations and conclusions.
     """
 
-    source: str
+    source: EvidenceSource
     kind: EvidenceKind
     summary: str
     observed_at: datetime
@@ -36,9 +38,6 @@ class Evidence:
 
     def __post_init__(self) -> None:
         """Validate the domain invariants for evidence."""
-
-        if not self.source.strip():
-            raise ValueError("Evidence source must not be empty.")
 
         if not self.summary.strip():
             raise ValueError("Evidence summary must not be empty.")

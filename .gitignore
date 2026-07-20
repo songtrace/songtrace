@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Type checking and lint caches
+.pyright/
+.ruff_cache/
+.mypy_cache/
+
+# macOS
+.DS_Store
+
+# Editors
+.zed/
+.vscode/
+.idea/

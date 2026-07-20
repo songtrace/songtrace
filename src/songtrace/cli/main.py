@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 
 from songtrace import __version__
+from songtrace.core.investigations import InvestigationService
 
 app = typer.Typer(
     name="songtrace",
@@ -12,6 +13,7 @@ app = typer.Typer(
 )
 
 console = Console()
+investigation_service = InvestigationService()
 
 
 def version_callback(value: bool) -> None:
@@ -42,8 +44,13 @@ def investigate(
     track: Annotated[str, typer.Option(help="Title of the track.")],
 ) -> None:
     """Begin a song investigation."""
+    investigation = investigation_service.begin(
+        artist=artist,
+        track=track,
+    )
+
     console.print("[bold]SongTrace Investigation[/bold]")
     console.print()
-    console.print(f"Artist: {artist}")
-    console.print(f"Track: {track}")
-    console.print("Status: Awaiting evidence")
+    console.print(f"Artist: {investigation.track.artist}")
+    console.print(f"Track: {investigation.track.title}")
+    console.print(f"Status: {investigation.status.value}")

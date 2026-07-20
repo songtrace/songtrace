@@ -1,5 +1,4 @@
-from songtrace.core.domain import TrackIdentity
-from songtrace.core.investigations.models import Investigation
+from songtrace.domain import Investigation, TrackIdentity
 
 
 class InvestigationService:

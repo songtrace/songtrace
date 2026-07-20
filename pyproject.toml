@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-songtrace = "songtrace.cli.main:app"
+songtrace = "songtrace.presentation.cli.main:app"
 
 [build-system]
 requires = ["uv_build>=0.11.29,<0.12.0"]

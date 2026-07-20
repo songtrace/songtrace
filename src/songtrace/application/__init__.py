@@ -1,3 +1,4 @@
+from songtrace.application.csv_raw_evidence_source import CsvRawEvidenceSource
 from songtrace.application.evidence_importer import EvidenceImporter
 from songtrace.application.investigation_result import InvestigationResult
 from songtrace.application.investigation_service import InvestigationService
@@ -9,6 +10,7 @@ from songtrace.application.rule_catalog import RuleCatalog
 from songtrace.application.simple_investigator import SimpleInvestigator
 
 __all__ = [
+    "CsvRawEvidenceSource",
     "EvidenceImporter",
     "InvestigationResult",
     "InvestigationService",

@@ -15,6 +15,7 @@ from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSou
 
 _OBSERVED_AT = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
 _OCCURRED_AT = datetime(2026, 7, 17, 12, 0, tzinfo=UTC)
+_FALLBACK_OBSERVED_AT = datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
 
 
 def test_successfully_imports_raw_evidence_records() -> None:
@@ -47,7 +48,7 @@ def test_invalid_records_fail_import() -> None:
     )
 
     with pytest.raises(ValueError, match="observed_at must be timezone-aware"):
-        EvidenceImporter().import_records(records)
+        EvidenceImporter(clock=lambda: datetime(2026, 7, 18, 12, 0)).import_records(records)
 
 
 def test_importer_produces_expected_evidence_objects() -> None:
@@ -70,6 +71,82 @@ def test_importer_produces_expected_evidence_objects() -> None:
     assert evidence.occurred_at == _OCCURRED_AT
     assert evidence.reference == "spotify-analytics:streams-week-2026-07-18"
     assert evidence.signals == (EvidenceSignal.STREAM_GROWTH,)
+
+
+def test_importer_uses_fallback_clock_when_observed_at_is_absent() -> None:
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased 48% after the playlist placement.",
+        occurred_at=_OCCURRED_AT,
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+    )
+
+    evidence = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records((record,))[0]
+
+    assert evidence.observed_at == _FALLBACK_OBSERVED_AT
+
+
+def test_importer_preserves_supplied_observed_at() -> None:
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased 48% after the playlist placement.",
+        observed_at=_OBSERVED_AT,
+        occurred_at=_OCCURRED_AT,
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+    )
+
+    evidence = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records((record,))[0]
+
+    assert evidence.observed_at == _OBSERVED_AT
+
+
+def test_importer_uses_one_deterministic_fallback_timestamp_per_batch() -> None:
+    fallback_times = iter(
+        (
+            datetime(2026, 7, 20, 1, 0, tzinfo=UTC),
+            datetime(2026, 7, 20, 2, 0, tzinfo=UTC),
+        )
+    )
+    records = (
+        RawEvidenceRecord(
+            source_name="spotify",
+            kind=EvidenceKind.PLAYLIST_ACTIVITY,
+            summary="Everything Is Fading received editorial playlist placement.",
+            occurred_at=_OCCURRED_AT,
+            signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
+        ),
+        RawEvidenceRecord(
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased 48% after the playlist placement.",
+            occurred_at=_OCCURRED_AT,
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+
+    evidence = EvidenceImporter(clock=lambda: next(fallback_times)).import_records(records)
+
+    assert tuple(item.observed_at for item in evidence) == (
+        datetime(2026, 7, 20, 1, 0, tzinfo=UTC),
+        datetime(2026, 7, 20, 1, 0, tzinfo=UTC),
+    )
+
+
+def test_importer_preserves_occurred_at_when_observed_at_falls_back() -> None:
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased 48% after the playlist placement.",
+        occurred_at=_OCCURRED_AT,
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+    )
+
+    evidence = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records((record,))[0]
+
+    assert evidence.observed_at == _FALLBACK_OBSERVED_AT
+    assert evidence.occurred_at == _OCCURRED_AT
 
 
 def test_source_returns_immutable_tuple() -> None:
@@ -97,7 +174,6 @@ def test_raw_evidence_record_stores_signals_as_immutable_tuple() -> None:
         source_name="spotify",
         kind=EvidenceKind.AUDIENCE_ACTIVITY,
         summary="Streams increased.",
-        observed_at=_OBSERVED_AT,
         signals=cast(tuple[EvidenceSignal, ...], signals),
     )
     signals.append(EvidenceSignal.SAVE_GROWTH)
@@ -119,6 +195,7 @@ def _playlist_record() -> RawEvidenceRecord:
         kind=EvidenceKind.PLAYLIST_ACTIVITY,
         summary="Everything Is Fading received editorial playlist placement.",
         observed_at=_OBSERVED_AT,
+        occurred_at=_OCCURRED_AT,
         reference="spotify-playlist:dark-metal-editorial",
         signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
     )
@@ -130,6 +207,7 @@ def _stream_record() -> RawEvidenceRecord:
         kind=EvidenceKind.AUDIENCE_ACTIVITY,
         summary="Streams increased 48% after the playlist placement.",
         observed_at=_OBSERVED_AT,
+        occurred_at=_OCCURRED_AT,
         reference="spotify-analytics:streams-week-2026-07-18",
         signals=(EvidenceSignal.STREAM_GROWTH,),
     )
@@ -141,6 +219,7 @@ def _save_record() -> RawEvidenceRecord:
         kind=EvidenceKind.AUDIENCE_ACTIVITY,
         summary="Save activity increased 31% after the playlist placement.",
         observed_at=_OBSERVED_AT,
+        occurred_at=_OCCURRED_AT,
         reference="spotify-analytics:saves-week-2026-07-18",
         signals=(EvidenceSignal.SAVE_GROWTH,),
     )

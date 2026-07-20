@@ -1,0 +1,29 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000101",
+    "source_name": "spotify",
+    "kind": "playlist_activity",
+    "summary": "Everything Is Fading received editorial playlist placement.",
+    "occurred_at": "2026-07-18T12:00:00+00:00",
+    "reference": "spotify-playlist:dark-metal-editorial",
+    "signals": ["playlist_placement"]
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000102",
+    "source_name": "spotify",
+    "kind": "audience_activity",
+    "summary": "Streams increased 48% after the playlist placement.",
+    "occurred_at": "2026-07-18T12:00:00+00:00",
+    "reference": "spotify-analytics:streams-week-2026-07-18",
+    "signals": ["stream_growth"]
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000103",
+    "source_name": "spotify",
+    "kind": "audience_activity",
+    "summary": "Save activity increased 31% after the playlist placement.",
+    "occurred_at": "2026-07-18T12:00:00+00:00",
+    "reference": "spotify-analytics:saves-week-2026-07-18",
+    "signals": ["save_growth"]
+  }
+]

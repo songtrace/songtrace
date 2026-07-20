@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from songtrace.core.domain import TrackIdentity
+from songtrace.domain import TrackIdentity
 
 
 def test_track_identity_strips_whitespace() -> None:

@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from songtrace.cli.main import app
+from songtrace.presentation.cli.main import app
 
 runner = CliRunner()
 

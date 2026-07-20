@@ -4,7 +4,7 @@ import typer
 from rich.console import Console
 
 from songtrace import __version__
-from songtrace.core.investigations import InvestigationService
+from songtrace.application import InvestigationService
 
 app = typer.Typer(
     name="songtrace",

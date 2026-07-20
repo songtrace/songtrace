@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from songtrace.core.domain import TrackIdentity
+from songtrace.domain.track import TrackIdentity
 
 
 class InvestigationStatus(StrEnum):

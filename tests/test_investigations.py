@@ -1,7 +1,5 @@
-from songtrace.core.investigations import (
-    InvestigationService,
-    InvestigationStatus,
-)
+from songtrace.application import InvestigationService
+from songtrace.domain import InvestigationStatus
 
 
 def test_begin_investigation() -> None:

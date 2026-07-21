@@ -269,7 +269,7 @@ def test_validate_evidence_accepts_royalty_reported_signal(tmp_path: Path) -> No
     assert "00000000-0000-0000-0000-000000000901" in result.stdout
 
 
-def test_investigate_evidence_accepts_royalty_evidence_without_current_rules(
+def test_investigate_evidence_extracts_royalty_observation_without_current_rules(
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "royalty-evidence.csv"
@@ -279,7 +279,7 @@ def test_investigate_evidence_accepts_royalty_evidence_without_current_rules(
 
     assert result.exit_code == 0
     assert "Evidence: 1" in result.stdout
-    assert "Observations: 0" in result.stdout
+    assert "Observations: 1" in result.stdout
     assert "Conclusions: 0" in result.stdout
 
 

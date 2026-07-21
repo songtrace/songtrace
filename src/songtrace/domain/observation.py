@@ -13,6 +13,7 @@ class ObservationKind(StrEnum):
 
     PLAYLIST_SAVE_GROWTH = "playlist_save_growth"
     PLAYLIST_STREAM_GROWTH = "playlist_stream_growth"
+    ROYALTY_REPORTED = "royalty_reported"
 
 
 @dataclass(frozen=True, slots=True)

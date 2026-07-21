@@ -14,6 +14,7 @@ _PLAYLIST_ID = UUID("00000000-0000-0000-0000-000000000001")
 _STREAM_ID = UUID("00000000-0000-0000-0000-000000000002")
 _SAVE_ID = UUID("00000000-0000-0000-0000-000000000003")
 _OTHER_ID = UUID("00000000-0000-0000-0000-000000000004")
+_ROYALTY_ID = UUID("00000000-0000-0000-0000-000000000005")
 
 
 def test_generates_stream_observation_from_playlist_and_stream_growth_evidence() -> None:
@@ -67,7 +68,19 @@ def test_generates_stream_and_save_observations_together() -> None:
     assert observations[1].supporting_evidence_ids == (_PLAYLIST_ID, _SAVE_ID)
 
 
-def test_generates_no_observations_when_playlist_evidence_is_missing() -> None:
+def test_generates_royalty_reported_observation() -> None:
+    royalty_evidence = _royalty_evidence()
+
+    observations = ObservationExtractor(clock=lambda: _OBSERVED_AT).extract((royalty_evidence,))
+
+    assert len(observations) == 1
+    assert observations[0].kind is ObservationKind.ROYALTY_REPORTED
+    assert observations[0].summary == "Royalty activity was reported."
+    assert observations[0].supporting_evidence_ids == (_ROYALTY_ID,)
+    assert observations[0].observed_at == _OBSERVED_AT
+
+
+def test_generates_no_playlist_observations_when_playlist_evidence_is_missing() -> None:
     observations = ObservationExtractor(clock=lambda: _OBSERVED_AT).extract(
         (_stream_evidence(), _save_evidence())
     )
@@ -83,15 +96,28 @@ def test_ignores_unrelated_evidence() -> None:
     assert observations == ()
 
 
+def test_generates_playlist_and_royalty_observations_together_in_deterministic_order() -> None:
+    observations = ObservationExtractor(clock=lambda: _OBSERVED_AT).extract(
+        (_royalty_evidence(), _playlist_evidence(), _stream_evidence(), _save_evidence())
+    )
+
+    assert [observation.kind for observation in observations] == [
+        ObservationKind.PLAYLIST_STREAM_GROWTH,
+        ObservationKind.PLAYLIST_SAVE_GROWTH,
+        ObservationKind.ROYALTY_REPORTED,
+    ]
+
+
 def test_uses_injected_clock_for_observed_at_deterministically() -> None:
     observed_times = (
         datetime(2026, 7, 20, 1, 0, tzinfo=UTC),
         datetime(2026, 7, 20, 2, 0, tzinfo=UTC),
+        datetime(2026, 7, 20, 3, 0, tzinfo=UTC),
     )
     times = iter(observed_times)
 
     observations = ObservationExtractor(clock=lambda: next(times)).extract(
-        (_playlist_evidence(), _stream_evidence(), _save_evidence())
+        (_playlist_evidence(), _stream_evidence(), _save_evidence(), _royalty_evidence())
     )
 
     assert tuple(observation.observed_at for observation in observations) == observed_times
@@ -150,9 +176,15 @@ def test_summary_keywords_do_not_generate_observations_without_structured_signal
         summary="STREAMS GREW 48% week over week.",
         signals=(),
     )
+    royalty_evidence = _evidence(
+        id=_ROYALTY_ID,
+        kind=EvidenceKind.ROYALTY_ACTIVITY,
+        summary="ROYALTIES were REPORTED for a statement period.",
+        signals=(),
+    )
 
     observations = ObservationExtractor(clock=lambda: _OBSERVED_AT).extract(
-        (playlist_evidence, stream_evidence)
+        (playlist_evidence, stream_evidence, royalty_evidence)
     )
 
     assert observations == ()
@@ -182,6 +214,15 @@ def _save_evidence() -> Evidence:
         kind=EvidenceKind.AUDIENCE_ACTIVITY,
         summary="Save activity increased 31% week over week.",
         signals=(EvidenceSignal.SAVE_GROWTH,),
+    )
+
+
+def _royalty_evidence() -> Evidence:
+    return _evidence(
+        id=_ROYALTY_ID,
+        kind=EvidenceKind.ROYALTY_ACTIVITY,
+        summary="Royalties were reported for a synthetic statement period.",
+        signals=(EvidenceSignal.ROYALTY_REPORTED,),
     )
 
 

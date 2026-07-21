@@ -2,6 +2,104 @@
 from tests.presentation.cli.fixtures import *
 
 
+def test_validate_spotify_environment_text_success_does_not_leak_values() -> None:
+    result = runner.invoke(
+        app,
+        ["validate-spotify-environment"],
+        env={
+            "SONGTRACE_SPOTIFY_CLIENT_ID": "SECRET_CLIENT_ID",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET": "SECRET_CLIENT_SECRET",
+        },
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify Environment" in result.stdout
+    assert "Client ID: present" in result.stdout
+    assert "Client secret: present" in result.stdout
+    assert "Configured: yes" in result.stdout
+    assert "SECRET_CLIENT_ID" not in result.stdout
+    assert "SECRET_CLIENT_SECRET" not in result.stdout
+
+
+def test_validate_spotify_environment_json_success_does_not_leak_values() -> None:
+    result = runner.invoke(
+        app,
+        ["validate-spotify-environment", "--output", "json"],
+        env={
+            "SONGTRACE_SPOTIFY_CLIENT_ID": "SECRET_CLIENT_ID",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET": "SECRET_CLIENT_SECRET",
+        },
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "client_id_present": True,
+        "client_secret_present": True,
+        "configured": True,
+        "missing_variables": [],
+    }
+    assert "SECRET_CLIENT_ID" not in result.stdout
+    assert "SECRET_CLIENT_SECRET" not in result.stdout
+
+
+def test_validate_spotify_environment_missing_client_id_fails() -> None:
+    result = runner.invoke(
+        app,
+        ["validate-spotify-environment"],
+        env={
+            "SONGTRACE_SPOTIFY_CLIENT_ID": "",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET": "SECRET_CLIENT_SECRET",
+        },
+    )
+
+    assert result.exit_code == 1
+    assert "Client ID: missing" in result.stdout
+    assert "Client secret: present" in result.stdout
+    assert "SONGTRACE_SPOTIFY_CLIENT_ID" in result.stdout
+    assert "SECRET_CLIENT_SECRET" not in result.stdout
+
+
+def test_validate_spotify_environment_missing_client_secret_fails() -> None:
+    result = runner.invoke(
+        app,
+        ["validate-spotify-environment"],
+        env={
+            "SONGTRACE_SPOTIFY_CLIENT_ID": "SECRET_CLIENT_ID",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET": "",
+        },
+    )
+
+    assert result.exit_code == 1
+    assert "Client ID: present" in result.stdout
+    assert "Client secret: missing" in result.stdout
+    assert "SONGTRACE_SPOTIFY_CLIENT_SECRET" in result.stdout
+    assert "SECRET_CLIENT_ID" not in result.stdout
+
+
+def test_validate_spotify_environment_blank_values_are_missing_in_json() -> None:
+    result = runner.invoke(
+        app,
+        ["validate-spotify-environment", "--output", "json"],
+        env={
+            "SONGTRACE_SPOTIFY_CLIENT_ID": " ",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET": "",
+        },
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "client_id_present": False,
+        "client_secret_present": False,
+        "configured": False,
+        "missing_variables": [
+            "SONGTRACE_SPOTIFY_CLIENT_ID",
+            "SONGTRACE_SPOTIFY_CLIENT_SECRET",
+        ],
+    }
+
+
 def test_validate_evidence_text_success(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())

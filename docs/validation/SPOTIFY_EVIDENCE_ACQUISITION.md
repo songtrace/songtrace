@@ -28,6 +28,14 @@ The reasoning engine should continue to operate only on normalized `Evidence`, `
 
 SongTrace exposes `spotify_connector_descriptor()` as provider-facing planning metadata for this future boundary. The descriptor records expected ingestion methods, evidence kinds, freshness characteristics, and reliability considerations. It does not load records, perform OAuth, call Spotify APIs, store credentials, or create domain evidence.
 
+Before any live Spotify work, developers can check local credential environment variable presence with:
+
+```sh
+uv run songtrace validate-spotify-environment
+```
+
+This command reads `SONGTRACE_SPOTIFY_CLIENT_ID` and `SONGTRACE_SPOTIFY_CLIENT_SECRET` only to determine whether nonblank values are present. It does not print values, call Spotify APIs, perform OAuth, exchange tokens, store secrets, or create evidence.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

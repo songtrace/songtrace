@@ -6,6 +6,29 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `validate-spotify-environment`
+
+Validate whether local Spotify developer environment variables are present without exposing credential values.
+
+```sh
+uv run songtrace validate-spotify-environment
+```
+
+Required environment variables:
+
+- `SONGTRACE_SPOTIFY_CLIENT_ID`
+- `SONGTRACE_SPOTIFY_CLIENT_SECRET`
+
+The command reports only safe presence/missing status. It does not print credential values, call Spotify APIs, run OAuth, exchange tokens, store secrets, or create evidence.
+
+For machine-readable output:
+
+```sh
+uv run songtrace validate-spotify-environment --output json
+```
+
+The command exits non-zero when either required variable is missing or blank.
+
 ### `validate-evidence`
 
 Validate that a local raw evidence file can be imported into domain `Evidence`.

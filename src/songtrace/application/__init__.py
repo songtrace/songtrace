@@ -1,4 +1,8 @@
 from songtrace.application.csv_raw_evidence_source import CsvRawEvidenceSource
+from songtrace.application.evidence_connector_descriptor import (
+    EvidenceConnectorDescriptor,
+    EvidenceIngestionMethod,
+)
 from songtrace.application.evidence_importer import EvidenceImporter
 from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
 from songtrace.application.import_validation import EvidenceImportError, ImportValidationReport
@@ -13,9 +17,11 @@ from songtrace.application.simple_investigator import SimpleInvestigator
 
 __all__ = [
     "CsvRawEvidenceSource",
+    "EvidenceConnectorDescriptor",
     "EvidenceImportBatch",
     "EvidenceImportError",
     "EvidenceImporter",
+    "EvidenceIngestionMethod",
     "ImportBatchMetadata",
     "ImportValidationReport",
     "InvestigationResult",

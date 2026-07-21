@@ -149,7 +149,7 @@ def _parse_row(row: dict[str, str], row_number: int) -> RawEvidenceRecord:
     occurred_at = _required(row, "occurred_at", row_number)
     observed_at = _optional(row, "observed_at")
     reference = _optional(row, "reference")
-    signals = _required(row, "signals", row_number)
+    signals = row.get("signals") or ""
 
     return RawEvidenceRecord(
         id=_parse_uuid(id_value, "id", row_number),
@@ -201,11 +201,6 @@ def _parse_evidence_kind(value: str, row_number: int) -> EvidenceKind:
 
 def _parse_signals(value: str, row_number: int) -> tuple[EvidenceSignal, ...]:
     signal_values = [signal.strip() for signal in value.split(";") if signal.strip()]
-
-    if not signal_values:
-        raise ValueError(
-            f"Evidence XLSX row {row_number} field 'signals' must contain at least one signal"
-        )
 
     signals: list[EvidenceSignal] = []
     for signal_index, signal_value in enumerate(signal_values):

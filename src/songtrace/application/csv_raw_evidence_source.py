@@ -65,7 +65,7 @@ def _parse_row(row: dict[str | None, str | None], line_number: int) -> RawEviden
     occurred_at = _required(row, "occurred_at", line_number)
     observed_at = _optional(row, "observed_at")
     reference = _optional(row, "reference")
-    signals = _required(row, "signals", line_number)
+    signals = row.get("signals") or ""
 
     return RawEvidenceRecord(
         id=_parse_uuid(id_value, "id", line_number),
@@ -117,11 +117,6 @@ def _parse_evidence_kind(value: str, line_number: int) -> EvidenceKind:
 
 def _parse_signals(value: str, line_number: int) -> tuple[EvidenceSignal, ...]:
     signal_values = [signal.strip() for signal in value.split(";") if signal.strip()]
-
-    if not signal_values:
-        raise ValueError(
-            f"Evidence CSV row {line_number} field 'signals' must contain at least one signal"
-        )
 
     signals: list[EvidenceSignal] = []
 

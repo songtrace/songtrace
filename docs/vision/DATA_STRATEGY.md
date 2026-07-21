@@ -145,15 +145,42 @@ Provenance answers: "Where did this evidence come from?"
 
 At minimum, evidence should identify its source. Over time, SongTrace should support richer provenance metadata such as:
 
-- provider name
-- import batch
+- provider or source name
+- source category
+- import batch identifier
 - original record reference
-- retrieval time
-- data license or access tier
-- account or workspace context
+- retrieval or import time
+- source account or workspace context
+- data license, access tier, or usage restriction
 - source reliability notes
+- transformation notes when raw provider fields are normalized
 
 Provenance is essential for trust, debugging, audits, and resolving conflicting evidence.
+
+### Minimum provenance policy
+
+Near-term evidence should preserve enough provenance for a user or contributor to trace a conclusion back to the records that supported it:
+
+```text
+Conclusion -> Observation IDs -> Evidence IDs -> Source name and reference
+```
+
+The current `Evidence.source` and `Evidence.reference` fields are a suitable foundation for the first import sources. They should not be treated as a complete long-term provenance model, but they are enough to preserve traceability while the product remains small.
+
+Before adding provider integrations that produce account-specific, licensed, or commercially sensitive evidence, SongTrace should be able to represent:
+
+- the provider or source category that supplied the evidence
+- the import batch that introduced the evidence
+- the original source reference or row identifier
+- when the evidence was imported or observed
+- any material usage restriction that affects display, retention, or redistribution
+
+### Provenance principles
+
+- Provenance should be provider-neutral; it should describe where evidence came from without embedding provider-specific schemas in the reasoning engine.
+- Provider-specific payloads should be normalized before becoming domain `Evidence`.
+- Evidence summaries are not provenance. They may explain the evidence to humans, but traceability should rely on structured identifiers and references.
+- A conclusion should never require a user to trust an unsupported statement when the supporting evidence can be referenced directly.
 
 ## Freshness
 
@@ -165,8 +192,67 @@ SongTrace should distinguish:
 - when SongTrace observed or imported it
 - how often the source updates
 - whether the evidence may be stale
+- whether the evidence is a snapshot, an event, or a rolling aggregate
 
 The current distinction between `occurred_at` and `observed_at` is an important foundation. Raw records may omit `observed_at`; the importer can apply an import-time fallback while preserving the event's `occurred_at` value.
+
+### Freshness policy
+
+Freshness should be interpreted relative to the kind of evidence and the product question being answered.
+
+| Evidence type | Freshness concern | Strategy |
+| --- | --- | --- |
+| Event evidence | The event timestamp may be older than the import timestamp. | Preserve `occurred_at` as the event time and `observed_at` as the time SongTrace learned about it. |
+| Snapshot evidence | The value may represent a point-in-time state that becomes stale. | Preserve observation/import time and avoid presenting old snapshots as current. |
+| Rolling aggregate evidence | The aggregation window may not match other sources. | Document or encode the window before comparing it with other evidence. |
+| Historical evidence | Older records may be complete but less useful for near-term action. | Use historical depth to support baselines while distinguishing it from current freshness. |
+
+Future conclusions and recommendations should reduce confidence or explicitly report uncertainty when evidence is stale, missing a timestamp, or measured over incompatible windows.
+
+## Source Reliability
+
+Source reliability describes how much trust SongTrace should place in the origin and handling of evidence before it contributes to observations, conclusions, or confidence.
+
+Reliability is not the same as conclusion confidence. A reliable source can still support a weak conclusion if the evidence is incomplete, stale, or contradicted. An unreliable source can still be useful if it is clearly labeled and corroborated by stronger evidence.
+
+### Reliability considerations
+
+SongTrace should evaluate source reliability using factors such as:
+
+- whether the source is authoritative for the metric
+- whether the user has authorized access to the data
+- whether the source documents its methodology
+- whether timestamps and aggregation windows are clear
+- whether historical revisions or delayed reporting are common
+- whether the data can be corroborated by independent sources
+- whether licensing terms permit the intended use
+- whether the source has known coverage gaps or sampling limitations
+
+Near-term work should document these factors rather than prematurely implementing reliability scoring.
+
+## Source Conflicts
+
+Source conflicts occur when two or more evidence records cannot all be interpreted as simultaneously accurate for the same question, time window, entity, or metric.
+
+Examples include:
+
+- two providers reporting materially different stream counts for the same platform and date range
+- a playlist source reporting a placement that another source does not show
+- campaign spend totals that differ between a user upload and an advertising export
+- territory data that uses different region definitions or suppression thresholds
+
+### Conflict policy
+
+SongTrace should not silently hide conflicts or pick a winner without explanation.
+
+When conflicts are detected in future functionality, the product should prefer one of these outcomes:
+
+1. preserve all conflicting evidence and surface the uncertainty
+2. produce a lower-confidence conclusion with a clear rationale
+3. produce no conclusion when the conflict blocks trustworthy interpretation
+4. ask for additional evidence or human review
+
+Conflict resolution rules should be introduced only when the current product has concrete conflicting evidence to evaluate. Until then, the strategy is to preserve traceability and avoid overconfident conclusions.
 
 ## Confidence
 
@@ -183,7 +269,7 @@ Data-related inputs to confidence may eventually include:
 - missing counter-evidence
 - conflicts between sources
 
-The current `Confidence` model intentionally stays simple: a level and rationale. That is appropriate while the reasoning system remains small.
+The current `Confidence` model intentionally stays simple: a level and rationale. That is appropriate while the reasoning system remains small. The model should evolve only when current rules and evidence types need more expressive confidence behavior.
 
 ## Structured Metadata
 

@@ -105,7 +105,22 @@ def test_export_spotify_playlist_placement_writes_importable_json_file(
     assert evidence[0].reference == "spotify:playlist:playlist-id:track:spotify-track-id"
 
 
-def test_export_spotify_playlist_placement_rejects_incomplete_track_identity() -> None:
+def test_export_spotify_playlist_placement_rejects_incomplete_track_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, str]] = []
+
+    def lookup(playlist_id: str, track_id: str) -> SpotifyPlaylistTrackMembership:
+        calls.append((playlist_id, track_id))
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id=playlist_id,
+            spotify_track_id=track_id,
+            contains_track=True,
+            matched_track_ids=(track_id,),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
     result = runner.invoke(
         app,
         [
@@ -120,7 +135,7 @@ def test_export_spotify_playlist_placement_rejects_incomplete_track_identity() -
     )
 
     assert result.exit_code == 2
-    assert "requires both --track-artist and --track-title" in result.stderr
+    assert calls == []
 
 
 def test_export_spotify_playlist_placement_membership_not_found_is_private_safe(

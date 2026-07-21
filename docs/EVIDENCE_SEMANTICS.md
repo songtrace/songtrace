@@ -48,13 +48,13 @@ For royalty-statement-derived evidence:
 
 ## Current limits
 
-SongTrace can import royalty evidence today, but the deterministic investigation engine does not yet extract royalty observations or produce royalty conclusions.
+SongTrace can import royalty evidence and extract a provider-neutral royalty reported observation today, but the deterministic investigation engine does not yet produce royalty conclusions.
 
-A royalty evidence file can therefore validate successfully and still produce:
+A royalty evidence file can therefore validate successfully and produce:
 
 ```text
-Observations: 0
+Observations: 1
 Conclusions: 0
 ```
 
-That is expected until a focused ticket introduces provider-neutral royalty observations and catalog rules.
+That is expected until a focused ticket introduces provider-neutral royalty investigation rules.

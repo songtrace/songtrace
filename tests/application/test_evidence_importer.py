@@ -55,6 +55,27 @@ def test_invalid_records_fail_import() -> None:
         EvidenceImporter(clock=lambda: datetime(2026, 7, 18, 12, 0)).import_records(records)
 
 
+def test_import_records_does_not_return_partial_data_when_later_record_is_invalid() -> None:
+    records = (
+        _playlist_record(),
+        RawEvidenceRecord(
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased.",
+            observed_at=datetime(2026, 7, 18, 12, 0),
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+    imported: tuple[Evidence, ...] | None = None
+
+    with pytest.raises(EvidenceImportError, match="observed_at must be timezone-aware") as exc_info:
+        imported = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records(records)
+
+    assert imported is None
+    assert exc_info.value.report.accepted_record_count == 1
+    assert exc_info.value.report.rejected_record_index == 1
+
+
 def test_importer_produces_expected_evidence_objects() -> None:
     record = RawEvidenceRecord(
         source_name=" Spotify Analytics ",

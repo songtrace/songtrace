@@ -185,6 +185,18 @@ SongTrace should support multiple ingestion mechanisms over time, including:
 
 The reasoning engine must remain completely unaware of how evidence entered the system. Whether evidence originated from an OAuth API, a CSV export, a royalty statement, or a manual upload, observation extraction and investigation rules should operate only on normalized domain evidence.
 
+## Import Boundary and Atomicity
+
+SongTrace's current ingestion boundary follows this provider-neutral pipeline:
+
+```text
+RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
+```
+
+The importer should remain atomic unless a concrete product need justifies a different policy: an import returns a complete immutable evidence collection or raises with validation context. It should not expose partial domain evidence when a later record fails validation.
+
+This policy supports deterministic imports, repeatable tests, idempotency checks, and trustworthy provenance. See [Evidence Import Policy](../IMPORT_POLICY.md) for the current application-level contract.
+
 ## Authentication and Secret Management
 
 Future API-backed Evidence Connectors will need authentication and secret handling, but those concerns must remain outside the domain reasoning model.

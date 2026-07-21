@@ -36,6 +36,14 @@ uv run songtrace validate-spotify-environment
 
 This command reads `SONGTRACE_SPOTIFY_CLIENT_ID` and `SONGTRACE_SPOTIFY_CLIENT_SECRET` only to determine whether nonblank values are present. It does not print values, call Spotify APIs, perform OAuth, exchange tokens, store secrets, or create evidence.
 
+To validate that configured credentials can obtain a client-credentials token, use:
+
+```sh
+uv run songtrace validate-spotify-api-access
+```
+
+That command makes a single Spotify Accounts token request and reports only safe status. It does not print or store tokens, call Spotify Web API data endpoints, import evidence, perform a browser OAuth flow, or introduce provider-specific domain objects.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

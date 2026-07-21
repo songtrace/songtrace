@@ -1,5 +1,126 @@
 # ruff: noqa: F403,F405
+import pytest
+
+from songtrace.presentation.cli import main as cli_main
+from songtrace.providers import SpotifyApiAccessStatus, SpotifyEnvironmentStatus
 from tests.presentation.cli.fixtures import *
+
+
+def test_validate_spotify_api_access_text_success_does_not_leak_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "validate_spotify_api_access",
+        lambda: SpotifyApiAccessStatus(
+            environment=SpotifyEnvironmentStatus(
+                client_id_present=True,
+                client_secret_present=True,
+            ),
+            token_request_attempted=True,
+            access_granted=True,
+        ),
+    )
+
+    result = runner.invoke(app, ["validate-spotify-api-access"])
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify API Access" in result.stdout
+    assert "Credentials configured: yes" in result.stdout
+    assert "Token request attempted: yes" in result.stdout
+    assert "Access granted: yes" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_validate_spotify_api_access_json_success_does_not_leak_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "validate_spotify_api_access",
+        lambda: SpotifyApiAccessStatus(
+            environment=SpotifyEnvironmentStatus(
+                client_id_present=True,
+                client_secret_present=True,
+            ),
+            token_request_attempted=True,
+            access_granted=True,
+        ),
+    )
+
+    result = runner.invoke(app, ["validate-spotify-api-access", "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "access_granted": True,
+        "client_id_present": True,
+        "client_secret_present": True,
+        "credentials_configured": True,
+        "failure_reason": None,
+        "missing_variables": [],
+        "token_request_attempted": True,
+    }
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_validate_spotify_api_access_missing_credentials_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "validate_spotify_api_access",
+        lambda: SpotifyApiAccessStatus(
+            environment=SpotifyEnvironmentStatus(
+                client_id_present=False,
+                client_secret_present=False,
+            ),
+            token_request_attempted=False,
+            access_granted=False,
+            failure_reason="missing_credentials",
+        ),
+    )
+
+    result = runner.invoke(app, ["validate-spotify-api-access"])
+
+    assert result.exit_code == 1
+    assert "Credentials configured: no" in result.stdout
+    assert "Token request attempted: no" in result.stdout
+    assert "Access granted: no" in result.stdout
+    assert "SONGTRACE_SPOTIFY_CLIENT_ID" in result.stdout
+    assert "SONGTRACE_SPOTIFY_CLIENT_SECRET" in result.stdout
+    assert "SECRET_CLIENT_ID" not in result.stdout
+    assert "SECRET_CLIENT_SECRET" not in result.stdout
+    assert "SECRET_TOKEN" not in result.stdout
+
+
+def test_validate_spotify_api_access_failure_json_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "validate_spotify_api_access",
+        lambda: SpotifyApiAccessStatus(
+            environment=SpotifyEnvironmentStatus(
+                client_id_present=True,
+                client_secret_present=True,
+            ),
+            token_request_attempted=True,
+            access_granted=False,
+            failure_reason="spotify_token_http_error_401",
+        ),
+    )
+
+    result = runner.invoke(app, ["validate-spotify-api-access", "--output", "json"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert payload["access_granted"] is False
+    assert payload["failure_reason"] == "spotify_token_http_error_401"
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
 
 
 def test_validate_spotify_environment_text_success_does_not_leak_values() -> None:

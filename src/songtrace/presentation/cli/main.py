@@ -20,6 +20,7 @@ from songtrace.presentation.cli.options import (
     parse_optional_batch_id,
     parse_optional_imported_at,
     parse_output_format,
+    parse_timezone_aware_datetime,
 )
 from songtrace.presentation.cli.output import (
     console,
@@ -38,6 +39,8 @@ from songtrace.presentation.cli.output import (
 from songtrace.providers import (
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
+    spotify_track_metadata_raw_records_to_json_text,
+    spotify_track_metadata_to_raw_record,
     summarize_ascap_work,
     validate_spotify_api_access,
     validate_spotify_environment,
@@ -72,6 +75,66 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("export-spotify-track-metadata")
+def export_spotify_track_metadata_command(
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to export as raw evidence metadata."),
+    ],
+    occurred_at: Annotated[
+        str,
+        typer.Option(
+            "--occurred-at",
+            help="Deterministic timezone-aware ISO timestamp for the metadata evidence.",
+        ),
+    ],
+    observed_at: Annotated[
+        str | None,
+        typer.Option(
+            "--observed-at",
+            help="Optional deterministic timezone-aware ISO observation timestamp.",
+        ),
+    ] = None,
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-file",
+            help="Optional JSON file path to write. Prints JSON to stdout when omitted.",
+        ),
+    ] = None,
+) -> None:
+    """Export Spotify track metadata as RawEvidenceRecord-compatible JSON."""
+
+    parsed_occurred_at = parse_timezone_aware_datetime(
+        occurred_at,
+        field_name="occurred_at",
+        param_hint="--occurred-at",
+    )
+    parsed_observed_at = None
+    if observed_at is not None:
+        parsed_observed_at = parse_timezone_aware_datetime(
+            observed_at,
+            field_name="observed_at",
+            param_hint="--observed-at",
+        )
+
+    try:
+        metadata = lookup_spotify_track_metadata(spotify_track_id)
+        record = spotify_track_metadata_to_raw_record(
+            metadata,
+            occurred_at=parsed_occurred_at,
+            observed_at=parsed_observed_at,
+        )
+        output = spotify_track_metadata_raw_records_to_json_text((record,))
+        if output_file is None:
+            print(output, end="")
+            return
+        output_file.write_text(output, encoding="utf-8")
+    except (OSError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
 
 
 @app.command("spotify-track-lookup")

@@ -29,6 +29,10 @@ from songtrace.providers.spotify_track_lookup import (
     SpotifyTrackMetadata,
     lookup_spotify_track_metadata,
 )
+from songtrace.providers.spotify_track_metadata_export import (
+    spotify_track_metadata_raw_records_to_json_text,
+    spotify_track_metadata_to_raw_record,
+)
 
 __all__ = [
     "SPOTIFY_CLIENT_ID_ENV",
@@ -48,6 +52,8 @@ __all__ = [
     "lookup_spotify_track_metadata",
     "profile_ascap_csv_layout",
     "spotify_connector_descriptor",
+    "spotify_track_metadata_raw_records_to_json_text",
+    "spotify_track_metadata_to_raw_record",
     "summarize_ascap_work",
     "validate_spotify_api_access",
     "validate_spotify_environment",

@@ -22,21 +22,29 @@ def parse_optional_imported_at(value: str | None) -> datetime | None:
     if value is None:
         return None
 
+    return parse_timezone_aware_datetime(
+        value,
+        field_name="imported_at",
+        param_hint="--imported-at",
+    )
+
+
+def parse_timezone_aware_datetime(value: str, *, field_name: str, param_hint: str) -> datetime:
     try:
-        imported_at = datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError as error:
         raise typer.BadParameter(
-            "imported_at must be an ISO datetime",
-            param_hint="--imported-at",
+            f"{field_name} must be an ISO datetime",
+            param_hint=param_hint,
         ) from error
 
-    if imported_at.tzinfo is None or imported_at.utcoffset() is None:
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise typer.BadParameter(
-            "imported_at must be timezone-aware",
-            param_hint="--imported-at",
+            f"{field_name} must be timezone-aware",
+            param_hint=param_hint,
         )
 
-    return imported_at
+    return parsed
 
 
 def parse_output_format(output: str) -> Literal["text", "json"]:

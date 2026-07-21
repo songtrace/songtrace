@@ -148,6 +148,7 @@ def print_spotify_playlist_discovery_text_result(
             console.print(f"- {query}")
     console.print(f"Spotify track ID: {result.spotify_track_id}")
     console.print(f"Candidate playlists: {len(result.candidates)}")
+    console.print(f"Skipped candidates: {len(result.skipped_candidates)}")
     console.print(f"Verified placements: {len(result.verified_memberships)}")
     if result.memberships:
         console.print("Playlists:")
@@ -157,6 +158,11 @@ def print_spotify_playlist_discovery_text_result(
             console.print(
                 f"- {label} ({membership.spotify_playlist_id}): contains track {contains}"
             )
+    if result.skipped_candidates:
+        console.print("Skipped playlists:")
+        for skipped in result.skipped_candidates:
+            label = skipped.playlist_name or skipped.spotify_playlist_id
+            console.print(f"- {label} ({skipped.spotify_playlist_id}): {skipped.reason}")
 
 
 def print_spotify_playlist_discovery_json_result(
@@ -176,6 +182,15 @@ def print_spotify_playlist_discovery_json_result(
         ],
         "query": result.query,
         "queries": list(result.queries),
+        "skipped_candidate_count": len(result.skipped_candidates),
+        "skipped_candidates": [
+            {
+                "playlist_name": skipped.playlist_name,
+                "reason": skipped.reason,
+                "spotify_playlist_id": skipped.spotify_playlist_id,
+            }
+            for skipped in result.skipped_candidates
+        ],
         "spotify_track_id": result.spotify_track_id,
         "verified_placement_count": len(result.verified_memberships),
     }

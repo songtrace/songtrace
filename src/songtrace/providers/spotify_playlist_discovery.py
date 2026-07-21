@@ -47,6 +47,28 @@ class SpotifyPlaylistSearchCandidate:
 
 
 @dataclass(frozen=True, slots=True)
+class SpotifyPlaylistSkippedCandidate:
+    """Safe Spotify playlist candidate that could not be verified."""
+
+    spotify_playlist_id: str
+    reason: str
+    playlist_name: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.spotify_playlist_id.strip():
+            msg = "spotify_playlist_id_required"
+            raise ValueError(msg)
+        if not self.reason.strip():
+            msg = "spotify_playlist_skip_reason_required"
+            raise ValueError(msg)
+        object.__setattr__(self, "spotify_playlist_id", self.spotify_playlist_id.strip())
+        object.__setattr__(self, "reason", self.reason.strip())
+        if self.playlist_name is not None:
+            normalized_name = self.playlist_name.strip()
+            object.__setattr__(self, "playlist_name", normalized_name or None)
+
+
+@dataclass(frozen=True, slots=True)
 class SpotifyPlaylistDiscoveryResult:
     """Safe result for Spotify playlist search plus verified track membership."""
 
@@ -55,6 +77,7 @@ class SpotifyPlaylistDiscoveryResult:
     candidates: tuple[SpotifyPlaylistSearchCandidate, ...]
     memberships: tuple[SpotifyPlaylistTrackMembership, ...]
     queries: tuple[str, ...] = ()
+    skipped_candidates: tuple[SpotifyPlaylistSkippedCandidate, ...] = ()
 
     def __post_init__(self) -> None:
         normalized_query = self.query.strip()
@@ -70,6 +93,7 @@ class SpotifyPlaylistDiscoveryResult:
         object.__setattr__(self, "candidates", tuple(self.candidates))
         object.__setattr__(self, "memberships", tuple(self.memberships))
         object.__setattr__(self, "queries", normalized_queries)
+        object.__setattr__(self, "skipped_candidates", tuple(self.skipped_candidates))
 
     @property
     def verified_memberships(self) -> tuple[SpotifyPlaylistTrackMembership, ...]:
@@ -146,21 +170,36 @@ def discover_spotify_playlist_track_memberships_for_queries(
     )
 
     pages_requester = playlist_track_pages_requester or request_spotify_playlist_track_pages
-    memberships = tuple(
-        _verify_candidate_membership(
-            candidate,
-            normalized_track_id,
-            pages_requester(access_token, candidate.spotify_playlist_id),
-        )
-        for candidate in candidates
-    )
+    memberships: list[SpotifyPlaylistTrackMembership] = []
+    skipped_candidates: list[SpotifyPlaylistSkippedCandidate] = []
+    for candidate in candidates:
+        try:
+            memberships.append(
+                _verify_candidate_membership(
+                    candidate,
+                    normalized_track_id,
+                    pages_requester(access_token, candidate.spotify_playlist_id),
+                )
+            )
+        except ValueError as error:
+            reason = str(error)
+            if not reason.startswith("spotify_playlist_tracks_"):
+                raise
+            skipped_candidates.append(
+                SpotifyPlaylistSkippedCandidate(
+                    spotify_playlist_id=candidate.spotify_playlist_id,
+                    playlist_name=candidate.playlist_name,
+                    reason=reason,
+                )
+            )
 
     return SpotifyPlaylistDiscoveryResult(
         query=" | ".join(normalized_queries),
         queries=normalized_queries,
         spotify_track_id=normalized_track_id,
         candidates=candidates,
-        memberships=memberships,
+        memberships=tuple(memberships),
+        skipped_candidates=tuple(skipped_candidates),
     )
 
 

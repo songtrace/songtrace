@@ -28,6 +28,7 @@ from songtrace.providers.spotify_environment import (
 from songtrace.providers.spotify_playlist_discovery import (
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
+    SpotifyPlaylistSkippedCandidate,
     discover_spotify_playlist_track_memberships,
     discover_spotify_playlist_track_memberships_for_queries,
 )
@@ -64,6 +65,7 @@ __all__ = [
     "SpotifyEnvironmentStatus",
     "SpotifyPlaylistDiscoveryResult",
     "SpotifyPlaylistSearchCandidate",
+    "SpotifyPlaylistSkippedCandidate",
     "SpotifyPlaylistTrackMembership",
     "SpotifyTrackMetadata",
     "discover_spotify_playlist_track_memberships",

@@ -92,6 +92,8 @@ Generic raw evidence files currently require:
 - `occurred_at`
 - `signals`
 
+The `signals` field must be present in generic CSV, XLSX, and JSON records. It may be blank or empty when evidence has no currently defined structured signal.
+
 ### Optional fields
 
 Generic raw evidence files may include:
@@ -256,3 +258,7 @@ When a private local validation reveals something useful, capture only safe, non
 - recommended next focused ticket
 
 Do not include private row values, royalty amounts, account identifiers, names, statements, credentials, or screenshots.
+
+## Validation notes
+
+Repo-safe validation findings may be stored under `docs/validation/` when they document architecture lessons without exposing private data.

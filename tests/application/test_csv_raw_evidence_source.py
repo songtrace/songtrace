@@ -83,6 +83,17 @@ def test_parses_multiple_semicolon_separated_signals(tmp_path: Path) -> None:
     assert records[0].signals == (EvidenceSignal.STREAM_GROWTH, EvidenceSignal.SAVE_GROWTH)
 
 
+def test_blank_signals_field_loads_empty_signal_tuple(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.csv"
+    row = _row(kind="royalty_activity", signals="")
+    _write_csv(path, [row])
+
+    records = CsvRawEvidenceSource(path).load()
+
+    assert records[0].kind is EvidenceKind.ROYALTY_ACTIVITY
+    assert records[0].signals == ()
+
+
 def test_parses_timezone_aware_occurred_at(tmp_path: Path) -> None:
     path = tmp_path / "evidence.csv"
     _write_csv(path, _rows())

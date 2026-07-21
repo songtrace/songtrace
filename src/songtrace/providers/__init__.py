@@ -6,6 +6,7 @@ from songtrace.providers.ascap_csv_layout_profiler import (
     AscapCsvLayoutProfile,
     AscapCsvNumericProfile,
     AscapCsvRowGrainProfile,
+    AscapCsvStatementTypeProfile,
     profile_ascap_csv_layout,
 )
 from songtrace.providers.ascap_csv_raw_evidence_source import AscapCsvRawEvidenceSource
@@ -17,5 +18,6 @@ __all__ = [
     "AscapCsvNumericProfile",
     "AscapCsvRawEvidenceSource",
     "AscapCsvRowGrainProfile",
+    "AscapCsvStatementTypeProfile",
     "profile_ascap_csv_layout",
 ]

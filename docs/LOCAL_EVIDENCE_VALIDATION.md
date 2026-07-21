@@ -236,7 +236,9 @@ ASCAP CSV royalty statements can use more than one provider-specific layout. Bef
 uv run songtrace profile-ascap-csv-layout .songtrace-private/ascap/42278445.csv
 ```
 
-The profiler emits JSON containing aggregate schema information only. It does not normalize rows, produce `RawEvidenceRecord`, create domain `Evidence`, or run investigations.
+The profiler emits JSON containing aggregate schema information only. It can classify ASCAP statement type when that is safely inferable from filename or header shape, such as `domestic` or `international_incoming`. It does not normalize rows, produce `RawEvidenceRecord`, create domain `Evidence`, or run investigations.
+
+The statement-type profile is intended to show whether Domestic and International Incoming statements require different future normalization behavior. It is not a domain model and should not be used by the reasoning engine.
 
 Do not paste profiler output into documentation until you have verified it contains no private row values, royalty amounts, account identifiers, work titles, party names, writer names, customer data, or screenshots.
 

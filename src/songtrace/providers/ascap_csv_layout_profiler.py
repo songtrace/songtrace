@@ -77,11 +77,20 @@ class AscapCsvRowGrainProfile:
 
 
 @dataclass(frozen=True, slots=True)
+class AscapCsvStatementTypeProfile:
+    """Private-safe ASCAP statement-type classification."""
+
+    statement_type: str
+    basis: str
+
+
+@dataclass(frozen=True, slots=True)
 class AscapCsvFileProfile:
     """Private-safe ASCAP CSV file layout profile."""
 
     filename: str
     numeric_filename: bool
+    statement_type_profile: AscapCsvStatementTypeProfile
     row_count: int
     column_count: int
     header: tuple[str, ...]
@@ -130,6 +139,7 @@ def _profile_file(path: Path) -> AscapCsvFileProfile:
     return AscapCsvFileProfile(
         filename=path.name,
         numeric_filename=path.stem.isdigit(),
+        statement_type_profile=_statement_type_profile(path, header),
         row_count=len(rows),
         column_count=len(header),
         header=tuple(header),
@@ -157,6 +167,46 @@ def _read_csv(path: Path) -> tuple[tuple[str, ...], tuple[dict[str, str], ...]]:
         raise FileNotFoundError(f"ASCAP CSV file not found: {path}") from error
 
     return tuple(fieldnames), rows
+
+
+def _statement_type_profile(path: Path, header: tuple[str, ...]) -> AscapCsvStatementTypeProfile:
+    filename = path.stem.casefold()
+    normalized_filename = filename.replace("-", "_").replace(" ", "_")
+    if "international" in normalized_filename and "incoming" in normalized_filename:
+        return AscapCsvStatementTypeProfile(
+            statement_type="international_incoming",
+            basis="filename",
+        )
+    if "domestic" in normalized_filename:
+        return AscapCsvStatementTypeProfile(
+            statement_type="domestic",
+            basis="filename",
+        )
+
+    header_columns = set(header)
+    if {
+        "Country Name",
+        "Distribution Date",
+        "Revenue Class Description",
+        "$ Amount",
+    }.issubset(header_columns):
+        return AscapCsvStatementTypeProfile(
+            statement_type="international_incoming",
+            basis="header_shape",
+        )
+    if {
+        "DistributionYear",
+        "Distribution Quarter",
+        "Music User",
+        "Performance Source/Broadcast Medium",
+        "Dollars",
+    }.issubset(header_columns):
+        return AscapCsvStatementTypeProfile(
+            statement_type="domestic",
+            basis="header_shape",
+        )
+
+    return AscapCsvStatementTypeProfile(statement_type="unknown", basis="unknown")
 
 
 def _profile_column(name: str, rows: tuple[dict[str, str], ...]) -> AscapCsvColumnProfile:
@@ -320,6 +370,7 @@ def _to_jsonable(value: object) -> Any:
             "row_grain_profiles": tuple(
                 _to_jsonable(row_grain_profile) for row_grain_profile in value.row_grain_profiles
             ),
+            "statement_type_profile": _to_jsonable(value.statement_type_profile),
         }
     if isinstance(value, AscapCsvColumnProfile):
         return {
@@ -345,6 +396,11 @@ def _to_jsonable(value: object) -> Any:
             "columns": value.columns,
             "distinct_key_count": value.distinct_key_count,
             "duplicate_row_count": value.duplicate_row_count,
+        }
+    if isinstance(value, AscapCsvStatementTypeProfile):
+        return {
+            "basis": value.basis,
+            "statement_type": value.statement_type,
         }
 
     raise TypeError(f"Unsupported value for JSON serialization: {type(value).__name__}")

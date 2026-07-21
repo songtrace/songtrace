@@ -138,6 +138,61 @@ def test_profiles_row_grain_candidates(tmp_path: Path) -> None:
     assert row_grain_profiles[("Work ID", "Music User")]["distinct_key_count"] == 2
 
 
+def test_profiles_domestic_statement_type_from_header_shape(tmp_path: Path) -> None:
+    path = tmp_path / "42278445.csv"
+    _write_csv(path, _LAYOUT_A_COLUMNS, [_layout_a_row()])
+
+    payload = json.loads(profile_ascap_csv_layout((path,)).to_json())
+
+    assert payload["files"][0]["statement_type_profile"] == {
+        "basis": "header_shape",
+        "statement_type": "domestic",
+    }
+
+
+def test_profiles_international_incoming_statement_type_from_header_shape(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "43013186.csv"
+    _write_csv(path, _LAYOUT_B_COLUMNS, [_layout_b_row()])
+
+    payload = json.loads(profile_ascap_csv_layout((path,)).to_json())
+
+    assert payload["files"][0]["statement_type_profile"] == {
+        "basis": "header_shape",
+        "statement_type": "international_incoming",
+    }
+
+
+def test_profiles_statement_type_from_filename_when_header_is_unknown(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "International Incoming Statement.csv"
+    _write_csv(path, ("Unknown Column",), [{"Unknown Column": "SECRET_VALUE"}])
+
+    payload = json.loads(profile_ascap_csv_layout((path,)).to_json())
+
+    assert payload["files"][0]["statement_type_profile"] == {
+        "basis": "filename",
+        "statement_type": "international_incoming",
+    }
+    assert "SECRET_VALUE" not in profile_ascap_csv_layout((path,)).to_json()
+
+
+def test_profiles_unknown_statement_type_when_no_safe_signal_exists(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "42278445.csv"
+    _write_csv(path, ("Unknown Column",), [{"Unknown Column": "SECRET_VALUE"}])
+
+    payload = json.loads(profile_ascap_csv_layout((path,)).to_json())
+
+    assert payload["files"][0]["statement_type_profile"] == {
+        "basis": "unknown",
+        "statement_type": "unknown",
+    }
+
+
 def test_rejects_empty_path_collection() -> None:
     with pytest.raises(ValueError, match="at least one ASCAP CSV path is required"):
         profile_ascap_csv_layout(())

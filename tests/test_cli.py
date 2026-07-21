@@ -75,6 +75,52 @@ def test_investigate_evidence_csv_file(tmp_path: Path) -> None:
     assert "Conclusions: 1" in result.stdout
 
 
+def test_investigate_evidence_json_output_success(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["investigate-evidence", str(path), "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 3
+    assert payload["observation_count"] == 2
+    assert payload["conclusion_count"] == 1
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000201",
+        "00000000-0000-0000-0000-000000000202",
+        "00000000-0000-0000-0000-000000000203",
+    ]
+
+
+def test_investigate_evidence_json_output_includes_traceability_fields(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["investigate-evidence", str(path), "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    conclusion = payload["conclusions"][0]
+    assert conclusion["statement"] == (
+        "Editorial playlist placement likely drove renewed listener engagement."
+    )
+    assert conclusion["confidence_level"] == "high"
+    assert set(conclusion["supporting_observation_ids"]) == set(payload["observation_ids"])
+
+
+def test_investigate_evidence_rejects_unsupported_output_format(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["investigate-evidence", str(path), "--output", "yaml"])
+
+    assert result.exit_code != 0
+    assert "unsupported output format" in result.output + result.stderr
+
+
 def test_investigate_evidence_xlsx_file(tmp_path: Path) -> None:
     path = tmp_path / "evidence.xlsx"
     _write_xlsx(path, _matching_rows())
@@ -157,6 +203,22 @@ def test_investigate_evidence_reports_raw_source_failure(tmp_path: Path) -> None
     assert result.exit_code == 1
     assert "Evidence source failed." in output
     assert "Evidence JSON is invalid" in output
+    assert "Traceback" not in output
+
+
+def test_investigate_evidence_validation_failure_uses_text_error_when_json_requested(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "evidence.json"
+    path.write_text("not json", encoding="utf-8")
+
+    result = runner.invoke(app, ["investigate-evidence", str(path), "--output", "json"])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "Evidence JSON is invalid" in output
+    assert not output.strip().startswith("{")
     assert "Traceback" not in output
 
 

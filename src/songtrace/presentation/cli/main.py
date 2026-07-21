@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -16,6 +17,9 @@ from songtrace.application import (
     SimpleInvestigator,
     XlsxRawEvidenceSource,
 )
+from songtrace.domain.conclusion import Conclusion
+from songtrace.domain.evidence import Evidence
+from songtrace.domain.observation import Observation
 
 app = typer.Typer(
     name="songtrace",
@@ -80,6 +84,13 @@ def investigate_evidence(
             help="Path to a JSON, CSV, or XLSX raw evidence file.",
         ),
     ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
 ) -> None:
     """Run the deterministic investigation pipeline for a raw evidence file."""
 
@@ -96,17 +107,60 @@ def investigate_evidence(
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 
+    match output.lower():
+        case "text":
+            _print_text_result(evidence, observations, result.conclusions)
+        case "json":
+            _print_json_result(evidence, observations, result.conclusions)
+        case _:
+            raise typer.BadParameter(
+                "unsupported output format; expected text or json",
+                param_hint="--output",
+            )
+
+
+def _print_text_result(
+    evidence: tuple[Evidence, ...],
+    observations: tuple[Observation, ...],
+    conclusions: tuple[Conclusion, ...],
+) -> None:
     console.print("[bold]SongTrace Evidence Investigation[/bold]")
     console.print()
     console.print(f"Evidence: {len(evidence)}")
     console.print(f"Observations: {len(observations)}")
-    console.print(f"Conclusions: {len(result.conclusions)}")
+    console.print(f"Conclusions: {len(conclusions)}")
 
-    if result.conclusions:
+    if conclusions:
         console.print()
         console.print("[bold]Conclusions[/bold]")
-        for conclusion in result.conclusions:
+        for conclusion in conclusions:
             console.print(f"- {conclusion.statement}")
+
+
+def _print_json_result(
+    evidence: tuple[Evidence, ...],
+    observations: tuple[Observation, ...],
+    conclusions: tuple[Conclusion, ...],
+) -> None:
+    payload = {
+        "evidence_count": len(evidence),
+        "observation_count": len(observations),
+        "conclusion_count": len(conclusions),
+        "evidence_ids": [str(item.id) for item in evidence],
+        "observation_ids": [str(observation.id) for observation in observations],
+        "conclusions": [
+            {
+                "id": str(conclusion.id),
+                "statement": conclusion.statement,
+                "confidence_level": conclusion.confidence.level.value,
+                "supporting_observation_ids": [
+                    str(observation_id) for observation_id in conclusion.supporting_observation_ids
+                ],
+            }
+            for conclusion in conclusions
+        ],
+    }
+    print(json.dumps(payload, sort_keys=True))
 
 
 def _print_import_error(error: EvidenceImportError) -> None:

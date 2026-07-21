@@ -111,7 +111,15 @@ uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.x
 
 It loads raw records, imports validated domain evidence, extracts observations, runs the deterministic investigator, and prints evidence, observation, and conclusion counts.
 
-For expected validation failures, the command exits non-zero and prints a concise provider-neutral error instead of a Python traceback. Import validation errors include the rejected record index, accepted record count before rejection, available source/reference/record ID context, and the validation message.
+For scripts or repeatable local checks, request a small provider-neutral JSON summary:
+
+```sh
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv --output json
+```
+
+The JSON output includes counts, evidence IDs, observation IDs, and conclusion traceability fields. It is intended for local validation automation, not as a full report export format.
+
+For expected validation failures, the command exits non-zero and prints a concise provider-neutral text error instead of a Python traceback. Import validation errors include the rejected record index, accepted record count before rejection, available source/reference/record ID context, and the validation message.
 
 For deeper debugging, use the existing source that matches the file shape you want to validate:
 

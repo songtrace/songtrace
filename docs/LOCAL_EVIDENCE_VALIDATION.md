@@ -81,6 +81,13 @@ SongTrace currently has generic raw evidence sources for:
 
 These sources expect provider-neutral evidence fields. They are not provider-specific importers.
 
+SongTrace also has narrow provider-neutral CSV sources for common local validation shapes:
+
+- playlist placement CSV: `PlaylistPlacementCsvRawEvidenceSource`
+- platform activity CSV: `PlatformActivityCsvRawEvidenceSource`
+
+The specialized CSV sources must be invoked explicitly by application code or dedicated CLI commands. The generic `.csv` loader does not auto-detect specialized CSV shapes.
+
 ### Required fields
 
 Generic raw evidence files currently require:
@@ -107,6 +114,28 @@ Generic raw evidence files may include:
 `occurred_at` and `observed_at`, when supplied, must be timezone-aware ISO datetimes.
 
 If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional. SongTrace currently stores this identity for traceability and future correlation; it does not yet perform track matching, fuzzy matching, ISRC validation, or investigation filtering.
+
+### Platform activity CSV shape
+
+`PlatformActivityCsvRawEvidenceSource` is a provider-neutral convenience source for local stream/save activity evidence. It is useful when validating playlist attribution workflows without hand-authoring generic evidence fields.
+
+Required fields:
+
+- `id`
+- `source_name`
+- `summary`
+- `occurred_at`
+- `reference`
+- `signal`
+
+Optional fields:
+
+- `observed_at`
+- `track_artist`
+- `track_title`
+- `track_isrc`
+
+The `signal` field must be either `stream_growth` or `save_growth`. Records normalize to `audience_activity` evidence with the matching structured signal. Datetimes must be timezone-aware ISO datetimes. The source does not contact Spotify, Apple Music, YouTube, TikTok, or any other platform API.
 
 ## Smoke-test workflow
 
@@ -176,6 +205,7 @@ from songtrace.application import (
     EvidenceImporter,
     JsonRawEvidenceSource,
     ObservationExtractor,
+    PlatformActivityCsvRawEvidenceSource,
     SimpleInvestigator,
     XlsxRawEvidenceSource,
 )
@@ -186,6 +216,9 @@ source = CsvRawEvidenceSource(path)
 # Alternatives:
 # source = JsonRawEvidenceSource(Path("/absolute/path/to/local/private/evidence.json"))
 # source = XlsxRawEvidenceSource(Path("/absolute/path/to/local/private/evidence.xlsx"))
+# source = PlatformActivityCsvRawEvidenceSource(
+#     Path("/absolute/path/to/local/private/platform-activity.csv")
+# )
 
 records = source.load()
 evidence = EvidenceImporter(clock=lambda: datetime.now(UTC)).import_records(records)

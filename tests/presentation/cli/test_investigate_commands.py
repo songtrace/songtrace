@@ -197,6 +197,242 @@ def test_investigate_playlist_platform_csv_json_success_with_traceability(
     )
 
 
+def test_investigate_playlist_platform_csv_track_filter_keeps_matching_evidence(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    track = {
+        "track_artist": "Warrel Dane",
+        "track_title": "Everything Is Fading",
+        "track_isrc": "USABC0800001",
+    }
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row(**track)])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302",
+                signal="stream_growth",
+                **track,
+            ),
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000303",
+                signal="save_growth",
+                **track,
+            ),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "USABC0800001",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 3
+    assert payload["observation_count"] == 2
+    assert payload["conclusion_count"] == 1
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000301",
+        "00000000-0000-0000-0000-000000000302",
+        "00000000-0000-0000-0000-000000000303",
+    ]
+
+
+def test_investigate_playlist_platform_csv_track_filter_excludes_non_matching_evidence(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    target_track = {
+        "track_artist": "Warrel Dane",
+        "track_title": "Everything Is Fading",
+        "track_isrc": "USABC0800001",
+    }
+    other_track = {
+        "track_artist": "Warrel Dane",
+        "track_title": "Brother",
+        "track_isrc": "USABC0800002",
+    }
+    _write_playlist_placement_csv(
+        path=playlist_path,
+        rows=[
+            _playlist_placement_row(**target_track),
+            _playlist_placement_row(id="00000000-0000-0000-0000-000000000304", **other_track),
+        ],
+    )
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302",
+                signal="stream_growth",
+                **target_track,
+            ),
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000303",
+                signal="save_growth",
+                **target_track,
+            ),
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000305",
+                signal="stream_growth",
+                **other_track,
+            ),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "USABC0800001",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000301",
+        "00000000-0000-0000-0000-000000000302",
+        "00000000-0000-0000-0000-000000000303",
+    ]
+    assert payload["conclusion_count"] == 1
+
+
+def test_investigate_playlist_platform_csv_track_filter_excludes_missing_track_identity(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302", signal="stream_growth"
+            ),
+            _platform_activity_row(id="00000000-0000-0000-0000-000000000303", signal="save_growth"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 0
+    assert payload["observation_count"] == 0
+    assert payload["conclusion_count"] == 0
+    assert payload["evidence_ids"] == []
+
+
+def test_investigate_playlist_platform_csv_track_filter_requires_artist_and_title(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(path=platform_path, rows=[_platform_activity_row()])
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--track-isrc",
+            "USABC0800001",
+        ],
+    )
+    output = result.output + result.stderr
+
+    assert result.exit_code != 0
+    assert "Invalid value" in output
+    assert "track filtering" in output
+    assert "Traceback" not in output
+
+
+def test_investigate_playlist_platform_csv_track_filter_uses_exact_isrc(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    track = {
+        "track_artist": "Warrel Dane",
+        "track_title": "Everything Is Fading",
+        "track_isrc": "USABC0800001",
+    }
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row(**track)])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302",
+                signal="stream_growth",
+                **track,
+            )
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "USABC0800002",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 0
+    assert payload["observation_count"] == 0
+
+
 def test_investigate_playlist_platform_csv_preserves_platform_file_order(
     tmp_path: Path,
 ) -> None:

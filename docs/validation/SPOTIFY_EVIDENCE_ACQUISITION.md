@@ -52,6 +52,16 @@ uv run songtrace spotify-track-lookup 0abc123exampleTrackId
 
 That command requests safe track metadata by Spotify track ID and prints only identity fields such as title, artists, album, and ISRC when available. It is a development probe only: it does not import evidence, infer attribution, persist tokens, or expose Spotify response objects to the domain model.
 
+To convert that safe metadata into the existing import boundary, use:
+
+```sh
+uv run songtrace export-spotify-track-metadata 0abc123exampleTrackId \
+  --occurred-at 2026-07-21T12:00:00+00:00 \
+  --output-file .songtrace-private/everything-is-fading/spotify-track-metadata.json
+```
+
+The exported record is identity metadata evidence only. It can anchor cross-provider matching through artist, title, ISRC, and Spotify track reference, but it must not be treated as evidence of engagement, playlist placement, source attribution, or commercial impact.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

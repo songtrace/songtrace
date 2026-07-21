@@ -6,6 +6,32 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `export-spotify-track-metadata`
+
+Look up Spotify track metadata and export it as a JSON array compatible with the existing raw evidence import boundary.
+
+```sh
+uv run songtrace export-spotify-track-metadata 0abc123exampleTrackId \
+  --occurred-at 2026-07-21T12:00:00+00:00
+```
+
+This command creates identity metadata evidence only. It does not infer engagement, playlist placement, stream growth, save growth, royalties, attribution, observations, or conclusions.
+
+To write the JSON to a private local file:
+
+```sh
+uv run songtrace export-spotify-track-metadata 0abc123exampleTrackId \
+  --occurred-at 2026-07-21T12:00:00+00:00 \
+  --observed-at 2026-07-21T12:05:00+00:00 \
+  --output-file .songtrace-private/everything-is-fading/spotify-track-metadata.json
+```
+
+The exported JSON can be validated with:
+
+```sh
+uv run songtrace validate-evidence .songtrace-private/everything-is-fading/spotify-track-metadata.json
+```
+
 ### `spotify-track-lookup`
 
 Look up safe Spotify track metadata by Spotify track ID. This command is a development probe for validating track identity mapping before Spotify evidence import exists.

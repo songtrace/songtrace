@@ -30,6 +30,62 @@ def test_investigate_evidence_json_file(tmp_path: Path) -> None:
     assert "Editorial playlist placement likely drove renewed listener engagement." in result.stdout
 
 
+def test_investigate_evidence_combines_multiple_json_files_in_order(tmp_path: Path) -> None:
+    playlist_path = tmp_path / "playlist-evidence.json"
+    stream_path = tmp_path / "stream-evidence.json"
+    save_path = tmp_path / "save-evidence.json"
+    _write_json(playlist_path, [_matching_records()[0]])
+    _write_json(stream_path, [_matching_records()[1]])
+    _write_json(save_path, [_matching_records()[2]])
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-evidence",
+            str(playlist_path),
+            str(stream_path),
+            str(save_path),
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 3
+    assert payload["observation_count"] == 2
+    assert payload["conclusion_count"] == 1
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000201",
+        "00000000-0000-0000-0000-000000000202",
+        "00000000-0000-0000-0000-000000000203",
+    ]
+
+
+def test_investigate_evidence_later_file_failure_produces_no_partial_output(
+    tmp_path: Path,
+) -> None:
+    valid_path = tmp_path / "valid-evidence.json"
+    invalid_path = tmp_path / "invalid-evidence.json"
+    _write_json(valid_path, [_matching_records()[0]])
+    _write_json(
+        invalid_path,
+        [
+            {
+                "id": "00000000-0000-0000-0000-000000000202",
+                "source_name": "spotify",
+            }
+        ],
+    )
+
+    result = runner.invoke(app, ["investigate-evidence", str(valid_path), str(invalid_path)])
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in result.stderr
+    assert "SongTrace Evidence Investigation" not in result.stdout
+    assert "Evidence: 1" not in result.stdout
+
+
 def test_investigate_playlist_placement_csv_text_success(tmp_path: Path) -> None:
     playlist_path = tmp_path / "playlist-placements.csv"
     evidence_path = tmp_path / "audience-evidence.json"

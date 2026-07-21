@@ -369,14 +369,14 @@ def investigate(
 
 @app.command("investigate-evidence")
 def investigate_evidence(
-    evidence_file: Annotated[
-        Path,
+    evidence_files: Annotated[
+        list[Path],
         typer.Argument(
             exists=True,
             file_okay=True,
             dir_okay=False,
             readable=True,
-            help="Path to a JSON, CSV, or XLSX raw evidence file.",
+            help="One or more JSON, CSV, or XLSX raw evidence files.",
         ),
     ],
     output: Annotated[
@@ -387,10 +387,16 @@ def investigate_evidence(
         ),
     ] = "text",
 ) -> None:
-    """Run the deterministic investigation pipeline for a raw evidence file."""
+    """Run the deterministic investigation pipeline for one or more raw evidence files."""
+
+    if not evidence_files:
+        raise typer.BadParameter(
+            "at least one evidence file is required",
+            param_hint="evidence_files",
+        )
 
     output_format = parse_output_format(output)
-    _raw_records, evidence = load_and_import_evidence(evidence_file)
+    _raw_records, evidence = load_and_import_evidence(tuple(evidence_files))
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 

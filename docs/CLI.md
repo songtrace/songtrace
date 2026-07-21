@@ -417,10 +417,19 @@ This is a private local analysis helper. It does not normalize rows into `RawEvi
 
 ### `investigate-evidence`
 
-Run the current deterministic investigation pipeline for a local raw evidence file.
+Run the current deterministic investigation pipeline for one or more local raw evidence files.
 
 ```sh
 uv run songtrace investigate-evidence examples/simple_investigation_evidence.json
+```
+
+Multiple files are combined deterministically in argument order, preserving each file's internal record order:
+
+```sh
+uv run songtrace investigate-evidence \
+  .songtrace-private/everything-is-fading/spotify-track-metadata.json \
+  .songtrace-private/everything-is-fading/spotify-playlist-placement.json \
+  .songtrace-private/everything-is-fading/platform-activity.json
 ```
 
 This command runs:
@@ -429,6 +438,8 @@ This command runs:
 RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
 Evidence -> ObservationExtractor -> Observation -> SimpleInvestigator -> Conclusion
 ```
+
+If any file fails to load or import, the command fails without producing partial investigation output.
 
 #### JSON output
 

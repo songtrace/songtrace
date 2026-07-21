@@ -73,6 +73,12 @@ def validate_spotify_api_access(
 def request_spotify_client_credentials_token(client_id: str, client_secret: str) -> None:
     """Request and validate a Spotify client-credentials token without returning it."""
 
+    request_spotify_client_credentials_access_token(client_id, client_secret)
+
+
+def request_spotify_client_credentials_access_token(client_id: str, client_secret: str) -> str:
+    """Request a Spotify client-credentials token without storing or printing it."""
+
     credentials = f"{client_id}:{client_secret}".encode()
     authorization = base64.b64encode(credentials).decode("ascii")
     body = urlencode({"grant_type": "client_credentials"}).encode("utf-8")
@@ -103,6 +109,7 @@ def request_spotify_client_credentials_token(client_id: str, client_secret: str)
     if not isinstance(access_token, str) or not access_token.strip():
         msg = "spotify_token_missing_access_token"
         raise ValueError(msg)
+    return access_token.strip()
 
 
 def _required_env_value(values: Mapping[str, str | None], variable_name: str) -> str:

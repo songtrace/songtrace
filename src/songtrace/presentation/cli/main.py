@@ -30,10 +30,13 @@ from songtrace.presentation.cli.output import (
     print_spotify_api_access_text_status,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
+    print_spotify_track_metadata_json_result,
+    print_spotify_track_metadata_text_result,
     print_validation_json_result,
     print_validation_text_result,
 )
 from songtrace.providers import (
+    lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
     summarize_ascap_work,
     validate_spotify_api_access,
@@ -69,6 +72,36 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("spotify-track-lookup")
+def spotify_track_lookup_command(
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to look up."),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Lookup safe Spotify track metadata without importing evidence."""
+
+    output_format = parse_output_format(output)
+    try:
+        metadata = lookup_spotify_track_metadata(spotify_track_id)
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_track_metadata_text_result(metadata)
+        case "json":
+            print_spotify_track_metadata_json_result(metadata)
 
 
 @app.command("validate-spotify-api-access")

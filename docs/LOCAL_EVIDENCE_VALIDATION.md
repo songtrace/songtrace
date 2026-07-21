@@ -270,7 +270,15 @@ The command can also match by a case-insensitive work title query for local expl
 uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-title "Everything Is Fading"
 ```
 
-The output is intentionally aggregate-only. It reports counts for scanned files, matched files, matched rows, statement types, distribution periods/dates, territories/countries, and revenue classes. It does not print the work ID, work title, filenames, account identifiers, party names, writer names, royalty amounts, or row values.
+The output is intentionally aggregate-only. By default, it reports counts for scanned files, matched files, matched rows, statement types, distribution periods/dates, territories/countries, and revenue classes. It does not print the work ID, work title, filenames, account identifiers, party names, writer names, royalty amounts, or row values.
+
+Use `--include-breakdowns` only for local exploratory analysis when aggregate labels are useful:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --include-breakdowns
+```
+
+Breakdowns may include distribution periods/dates, territories/countries, revenue classes, and statement types. They still do not include row-level values, royalty amounts, account IDs, party names, writer names, work IDs, work titles, filenames, or source row numbers.
 
 This command helps identify what evidence exists for a real work before expanding the domain model. It does not create `RawEvidenceRecord`, domain `Evidence`, observations, conclusions, or recommendations.
 

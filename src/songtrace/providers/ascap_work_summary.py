@@ -61,14 +61,17 @@ class AscapWorkSummary:
     matched_file_count: int
     matched_row_count: int
     statement_type_counts: tuple[tuple[str, int], ...]
+    distribution_period_counts: tuple[tuple[str, int], ...]
+    territory_counts: tuple[tuple[str, int], ...]
+    revenue_class_counts: tuple[tuple[str, int], ...]
     distribution_period_count: int
     territory_count: int
     revenue_class_count: int
 
-    def to_json(self) -> str:
+    def to_json(self, *, include_breakdowns: bool = False) -> str:
         """Serialize the safe summary as deterministic JSON."""
 
-        return json.dumps(_to_jsonable(self), sort_keys=True)
+        return json.dumps(_to_jsonable(self, include_breakdowns=include_breakdowns), sort_keys=True)
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,9 +100,9 @@ def summarize_ascap_work(
     matched_file_count = 0
     matched_row_count = 0
     statement_type_counts: Counter[str] = Counter()
-    distribution_periods: set[str] = set()
-    territories: set[str] = set()
-    revenue_classes: set[str] = set()
+    distribution_period_counts: Counter[str] = Counter()
+    territory_counts: Counter[str] = Counter()
+    revenue_class_counts: Counter[str] = Counter()
 
     for file_rows in files:
         file_matched = False
@@ -110,11 +113,11 @@ def summarize_ascap_work(
             file_matched = True
             matched_row_count += 1
             statement_type_counts[file_rows.statement_type] += 1
-            _add_if_present(
-                distribution_periods, _distribution_period(file_rows.statement_type, row)
+            _count_if_present(
+                distribution_period_counts, _distribution_period(file_rows.statement_type, row)
             )
-            _add_if_present(territories, _territory(file_rows.statement_type, row))
-            _add_if_present(revenue_classes, _revenue_class(file_rows.statement_type, row))
+            _count_if_present(territory_counts, _territory(file_rows.statement_type, row))
+            _count_if_present(revenue_class_counts, _revenue_class(file_rows.statement_type, row))
 
         if file_matched:
             matched_file_count += 1
@@ -124,9 +127,12 @@ def summarize_ascap_work(
         matched_file_count=matched_file_count,
         matched_row_count=matched_row_count,
         statement_type_counts=tuple(sorted(statement_type_counts.items())),
-        distribution_period_count=len(distribution_periods),
-        territory_count=len(territories),
-        revenue_class_count=len(revenue_classes),
+        distribution_period_counts=tuple(sorted(distribution_period_counts.items())),
+        territory_counts=tuple(sorted(territory_counts.items())),
+        revenue_class_counts=tuple(sorted(revenue_class_counts.items())),
+        distribution_period_count=len(distribution_period_counts),
+        territory_count=len(territory_counts),
+        revenue_class_count=len(revenue_class_counts),
     )
 
 
@@ -225,13 +231,13 @@ def _optional_nonblank(value: str | None) -> str | None:
     return stripped or None
 
 
-def _add_if_present(values: set[str], value: str | None) -> None:
+def _count_if_present(counter: Counter[str], value: str | None) -> None:
     if value is not None and value.strip():
-        values.add(value.strip())
+        counter[value.strip()] += 1
 
 
-def _to_jsonable(summary: AscapWorkSummary) -> dict[str, Any]:
-    return {
+def _to_jsonable(summary: AscapWorkSummary, *, include_breakdowns: bool) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "distribution_period_count": summary.distribution_period_count,
         "matched_file_count": summary.matched_file_count,
         "matched_row_count": summary.matched_row_count,
@@ -240,3 +246,11 @@ def _to_jsonable(summary: AscapWorkSummary) -> dict[str, Any]:
         "statement_type_counts": dict(summary.statement_type_counts),
         "territory_count": summary.territory_count,
     }
+    if include_breakdowns:
+        payload["breakdowns"] = {
+            "distribution_periods": dict(summary.distribution_period_counts),
+            "revenue_classes": dict(summary.revenue_class_counts),
+            "statement_types": dict(summary.statement_type_counts),
+            "territories": dict(summary.territory_counts),
+        }
+    return payload

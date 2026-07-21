@@ -203,6 +203,13 @@ def summarize_ascap_work_command(
             ),
         ),
     ] = None,
+    include_breakdowns: Annotated[
+        bool,
+        typer.Option(
+            "--include-breakdowns",
+            help="Include opt-in aggregate breakdown labels and counts.",
+        ),
+    ] = False,
     output: Annotated[
         str,
         typer.Option(
@@ -226,9 +233,9 @@ def summarize_ascap_work_command(
 
     match output_format:
         case "text":
-            _print_ascap_work_summary_text_result(summary)
+            _print_ascap_work_summary_text_result(summary, include_breakdowns=include_breakdowns)
         case "json":
-            print(summary.to_json())
+            print(summary.to_json(include_breakdowns=include_breakdowns))
 
 
 @app.command("validate-evidence")
@@ -438,7 +445,9 @@ def _print_json_result(
     print(json.dumps(payload, sort_keys=True))
 
 
-def _print_ascap_work_summary_text_result(summary: AscapWorkSummary) -> None:
+def _print_ascap_work_summary_text_result(
+    summary: AscapWorkSummary, *, include_breakdowns: bool
+) -> None:
     console.print("[bold]SongTrace ASCAP Work Summary[/bold]")
     console.print()
     console.print(f"Scanned files: {summary.scanned_file_count}")
@@ -451,6 +460,21 @@ def _print_ascap_work_summary_text_result(summary: AscapWorkSummary) -> None:
     if summary.statement_type_counts:
         for statement_type, count in summary.statement_type_counts:
             console.print(f"- {statement_type}: {count}")
+    else:
+        console.print("- none: 0")
+
+    if include_breakdowns:
+        _print_ascap_breakdown("Distribution periods/dates", summary.distribution_period_counts)
+        _print_ascap_breakdown("Territories/countries", summary.territory_counts)
+        _print_ascap_breakdown("Revenue classes", summary.revenue_class_counts)
+
+
+def _print_ascap_breakdown(label: str, counts: tuple[tuple[str, int], ...]) -> None:
+    console.print()
+    console.print(f"[bold]{label}[/bold]")
+    if counts:
+        for value, count in counts:
+            console.print(f"- {value}: {count}")
     else:
         console.print("- none: 0")
 

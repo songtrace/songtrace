@@ -242,9 +242,11 @@ The statement-type profile is intended to show whether Domestic and Internationa
 
 Do not paste profiler output into documentation until you have verified it contains no private row values, royalty amounts, account identifiers, work titles, party names, writer names, customer data, or screenshots.
 
-## ASCAP CSV layout A source
+## ASCAP CSV sources
 
-SongTrace includes a narrow `AscapCsvRawEvidenceSource` for the profiled 41-column ASCAP layout A. It converts supported ASCAP rows into provider-neutral `RawEvidenceRecord` objects using `royalty_activity` and `royalty_reported`.
+SongTrace includes a narrow `AscapCsvRawEvidenceSource` for the profiled 41-column ASCAP Domestic/layout A shape. It converts supported ASCAP rows into provider-neutral `RawEvidenceRecord` objects using `royalty_activity` and `royalty_reported`.
+
+SongTrace also includes `AscapInternationalIncomingCsvRawEvidenceSource` for the profiled International Incoming/layout B shape. It uses the same provider-neutral royalty evidence semantics while preserving a distinct safe reference prefix for traceability.
 
 To run the current deterministic pipeline against a private layout A CSV file:
 
@@ -252,7 +254,7 @@ To run the current deterministic pipeline against a private layout A CSV file:
 uv run songtrace investigate-ascap-csv-layout-a .songtrace-private/ascap/42278445.csv
 ```
 
-This source is intentionally not a general ASCAP connector. It does not support layout B, PDF statements, reconciliation, APIs, OAuth, or persistence.
+These sources are intentionally not a general ASCAP connector. They do not support PDF statements, reconciliation, APIs, OAuth, or persistence.
 
 ## API-backed sources are later
 

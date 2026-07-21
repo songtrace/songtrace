@@ -8,6 +8,7 @@ from rich.console import Console
 from songtrace import __version__
 from songtrace.application import (
     CsvRawEvidenceSource,
+    EvidenceImportBatch,
     EvidenceImporter,
     EvidenceImportError,
     InvestigationService,
@@ -125,17 +126,24 @@ def validate_evidence(
             help="Output format: text or json.",
         ),
     ] = "text",
+    source_name: Annotated[
+        str,
+        typer.Option(
+            "--source-name",
+            help="Provider-neutral source name for import batch metadata.",
+        ),
+    ] = "local_file",
 ) -> None:
     """Validate that a raw evidence file can be imported into domain evidence."""
 
     output_format = _parse_output_format(output)
-    raw_records, evidence = _load_and_import_evidence(evidence_file)
+    raw_records, batch = _load_and_import_batch(evidence_file, source_name=source_name)
 
     match output_format:
         case "text":
-            _print_validation_text_result(raw_records, evidence)
+            _print_validation_text_result(raw_records, batch)
         case "json":
-            _print_validation_json_result(raw_records, evidence)
+            _print_validation_json_result(raw_records, batch)
 
 
 def _load_and_import_evidence(
@@ -152,6 +160,24 @@ def _load_and_import_evidence(
         raise typer.Exit(1) from error
 
     return raw_records, evidence
+
+
+def _load_and_import_batch(
+    evidence_file: Path,
+    *,
+    source_name: str,
+) -> tuple[tuple[RawEvidenceRecord, ...], EvidenceImportBatch]:
+    try:
+        raw_records = _load_raw_records(evidence_file)
+        batch = EvidenceImporter().import_batch(raw_records, source_name=source_name)
+    except EvidenceImportError as error:
+        _print_import_error(error)
+        raise typer.Exit(1) from error
+    except ValueError as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    return raw_records, batch
 
 
 def _parse_output_format(output: str) -> Literal["text", "json"]:
@@ -213,25 +239,31 @@ def _print_json_result(
 
 def _print_validation_text_result(
     raw_records: tuple[RawEvidenceRecord, ...],
-    evidence: tuple[Evidence, ...],
+    batch: EvidenceImportBatch,
 ) -> None:
     console.print("[bold]SongTrace Evidence Validation[/bold]")
     console.print()
+    console.print(f"Batch ID: {batch.metadata.id}")
+    console.print(f"Source name: {batch.metadata.source_name}")
+    console.print(f"Imported at: {batch.metadata.imported_at.isoformat()}")
     console.print(f"Raw records: {len(raw_records)}")
-    console.print(f"Evidence: {len(evidence)}")
+    console.print(f"Evidence: {len(batch.evidence)}")
     console.print("Evidence IDs:")
-    for item in evidence:
+    for item in batch.evidence:
         console.print(f"- {item.id}")
 
 
 def _print_validation_json_result(
     raw_records: tuple[RawEvidenceRecord, ...],
-    evidence: tuple[Evidence, ...],
+    batch: EvidenceImportBatch,
 ) -> None:
     payload = {
+        "batch_id": str(batch.metadata.id),
+        "source_name": batch.metadata.source_name,
+        "imported_at": batch.metadata.imported_at.isoformat(),
         "raw_record_count": len(raw_records),
-        "evidence_count": len(evidence),
-        "evidence_ids": [str(item.id) for item in evidence],
+        "evidence_count": len(batch.evidence),
+        "evidence_ids": [str(item.id) for item in batch.evidence],
     }
     print(json.dumps(payload, sort_keys=True))
 

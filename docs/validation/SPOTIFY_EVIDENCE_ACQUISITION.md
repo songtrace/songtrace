@@ -26,6 +26,8 @@ RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
 
 The reasoning engine should continue to operate only on normalized `Evidence`, `Observation`, `Conclusion`, and `Confidence` models.
 
+SongTrace exposes `spotify_connector_descriptor()` as provider-facing planning metadata for this future boundary. The descriptor records expected ingestion methods, evidence kinds, freshness characteristics, and reliability considerations. It does not load records, perform OAuth, call Spotify APIs, store credentials, or create domain evidence.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

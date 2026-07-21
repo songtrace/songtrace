@@ -44,6 +44,14 @@ uv run songtrace validate-spotify-api-access
 
 That command makes a single Spotify Accounts token request and reports only safe status. It does not print or store tokens, call Spotify Web API data endpoints, import evidence, perform a browser OAuth flow, or introduce provider-specific domain objects.
 
+To validate track identity mapping through the Spotify Web API, use:
+
+```sh
+uv run songtrace spotify-track-lookup 0abc123exampleTrackId
+```
+
+That command requests safe track metadata by Spotify track ID and prints only identity fields such as title, artists, album, and ISRC when available. It is a development probe only: it does not import evidence, infer attribution, persist tokens, or expose Spotify response objects to the domain model.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

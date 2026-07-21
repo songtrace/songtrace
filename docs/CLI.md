@@ -6,6 +6,24 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `spotify-track-lookup`
+
+Look up safe Spotify track metadata by Spotify track ID. This command is a development probe for validating track identity mapping before Spotify evidence import exists.
+
+```sh
+uv run songtrace spotify-track-lookup 0abc123exampleTrackId
+```
+
+The command uses local Spotify developer credentials and the client credentials flow. It prints only safe metadata: Spotify track ID, title, artist names, album name when available, and ISRC when available. It does not print or store credentials or tokens, import evidence, run OAuth, or perform attribution.
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-track-lookup 0abc123exampleTrackId --output json
+```
+
+The command exits non-zero when credentials are missing, token validation fails, Spotify returns an error, the response is invalid, or the track ID is blank.
+
 ### `validate-spotify-api-access`
 
 Validate whether local Spotify developer credentials can obtain a client-credentials access token without exposing credential or token values.

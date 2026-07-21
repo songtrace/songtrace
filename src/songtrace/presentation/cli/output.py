@@ -6,7 +6,12 @@ from songtrace.application import EvidenceImportBatch, RawEvidenceRecord
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
-from songtrace.providers import AscapWorkSummary, SpotifyApiAccessStatus, SpotifyEnvironmentStatus
+from songtrace.providers import (
+    AscapWorkSummary,
+    SpotifyApiAccessStatus,
+    SpotifyEnvironmentStatus,
+    SpotifyTrackMetadata,
+)
 
 console = Console()
 
@@ -124,6 +129,29 @@ def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None
         "failure_reason": status.failure_reason,
         "missing_variables": list(status.environment.missing_variables),
         "token_request_attempted": status.token_request_attempted,
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_track_metadata_text_result(metadata: SpotifyTrackMetadata) -> None:
+    console.print("[bold]SongTrace Spotify Track Lookup[/bold]")
+    console.print()
+    console.print(f"Spotify track ID: {metadata.spotify_track_id}")
+    console.print(f"Title: {metadata.title}")
+    console.print(f"Artists: {', '.join(metadata.artist_names)}")
+    if metadata.album_name is not None:
+        console.print(f"Album: {metadata.album_name}")
+    if metadata.isrc is not None:
+        console.print(f"ISRC: {metadata.isrc}")
+
+
+def print_spotify_track_metadata_json_result(metadata: SpotifyTrackMetadata) -> None:
+    payload = {
+        "album_name": metadata.album_name,
+        "artist_names": list(metadata.artist_names),
+        "isrc": metadata.isrc,
+        "spotify_track_id": metadata.spotify_track_id,
+        "title": metadata.title,
     }
     print(json.dumps(payload, sort_keys=True))
 

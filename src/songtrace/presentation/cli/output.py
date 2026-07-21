@@ -6,7 +6,7 @@ from songtrace.application import EvidenceImportBatch, RawEvidenceRecord
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
-from songtrace.providers import AscapWorkSummary
+from songtrace.providers import AscapWorkSummary, SpotifyEnvironmentStatus
 
 console = Console()
 
@@ -99,6 +99,32 @@ def _print_ascap_breakdown(label: str, counts: tuple[tuple[str, int], ...]) -> N
             console.print(f"- {value}: {count}")
     else:
         console.print("- none: 0")
+
+
+def print_spotify_environment_text_status(status: SpotifyEnvironmentStatus) -> None:
+    console.print("[bold]SongTrace Spotify Environment[/bold]")
+    console.print()
+    console.print(f"Client ID: {_presence_label(status.client_id_present)}")
+    console.print(f"Client secret: {_presence_label(status.client_secret_present)}")
+    console.print(f"Configured: {'yes' if status.is_configured else 'no'}")
+    if status.missing_variables:
+        console.print("Missing variables:")
+        for variable_name in status.missing_variables:
+            console.print(f"- {variable_name}")
+
+
+def print_spotify_environment_json_status(status: SpotifyEnvironmentStatus) -> None:
+    payload = {
+        "client_id_present": status.client_id_present,
+        "client_secret_present": status.client_secret_present,
+        "configured": status.is_configured,
+        "missing_variables": list(status.missing_variables),
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def _presence_label(is_present: bool) -> str:
+    return "present" if is_present else "missing"
 
 
 def print_validation_text_result(

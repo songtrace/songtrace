@@ -26,10 +26,16 @@ from songtrace.presentation.cli.output import (
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
     print_investigation_text_result,
+    print_spotify_environment_json_status,
+    print_spotify_environment_text_status,
     print_validation_json_result,
     print_validation_text_result,
 )
-from songtrace.providers import profile_ascap_csv_layout, summarize_ascap_work
+from songtrace.providers import (
+    profile_ascap_csv_layout,
+    summarize_ascap_work,
+    validate_spotify_environment,
+)
 
 app = typer.Typer(
     name="songtrace",
@@ -60,6 +66,31 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("validate-spotify-environment")
+def validate_spotify_environment_command(
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Validate local Spotify developer environment variables without exposing values."""
+
+    output_format = parse_output_format(output)
+    status = validate_spotify_environment()
+
+    match output_format:
+        case "text":
+            print_spotify_environment_text_status(status)
+        case "json":
+            print_spotify_environment_json_status(status)
+
+    if not status.is_configured:
+        raise typer.Exit(1)
 
 
 @app.command()

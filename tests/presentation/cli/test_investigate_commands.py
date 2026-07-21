@@ -128,6 +128,205 @@ def test_investigate_playlist_placement_csv_preserves_supplemental_file_order(
     ]
 
 
+def test_investigate_playlist_platform_csv_text_success(tmp_path: Path) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302", signal="stream_growth"
+            ),
+            _platform_activity_row(id="00000000-0000-0000-0000-000000000303", signal="save_growth"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["investigate-playlist-platform-csv", str(playlist_path), str(platform_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace Evidence Investigation" in result.stdout
+    assert "Evidence: 3" in result.stdout
+    assert "Observations: 2" in result.stdout
+    assert "Conclusions: 1" in result.stdout
+    assert "Editorial playlist placement likely drove renewed listener engagement." in result.stdout
+
+
+def test_investigate_playlist_platform_csv_json_success_with_traceability(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302", signal="stream_growth"
+            ),
+            _platform_activity_row(id="00000000-0000-0000-0000-000000000303", signal="save_growth"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(platform_path),
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 3
+    assert payload["observation_count"] == 2
+    assert payload["conclusion_count"] == 1
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000301",
+        "00000000-0000-0000-0000-000000000302",
+        "00000000-0000-0000-0000-000000000303",
+    ]
+    assert set(payload["conclusions"][0]["supporting_observation_ids"]) == set(
+        payload["observation_ids"]
+    )
+
+
+def test_investigate_playlist_platform_csv_preserves_platform_file_order(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    first_platform_path = tmp_path / "first-platform-activity.csv"
+    second_platform_path = tmp_path / "second-platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(
+        path=first_platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302", signal="stream_growth"
+            )
+        ],
+    )
+    _write_platform_activity_csv(
+        path=second_platform_path,
+        rows=[
+            _platform_activity_row(id="00000000-0000-0000-0000-000000000303", signal="save_growth")
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-playlist-platform-csv",
+            str(playlist_path),
+            str(first_platform_path),
+            str(second_platform_path),
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000301",
+        "00000000-0000-0000-0000-000000000302",
+        "00000000-0000-0000-0000-000000000303",
+    ]
+
+
+def test_investigate_playlist_platform_csv_requires_platform_file(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+
+    result = runner.invoke(app, ["investigate-playlist-platform-csv", str(playlist_path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code != 0
+    assert "Missing argument" in output
+    assert "platform_files" in output
+    assert "Traceback" not in output
+
+
+def test_investigate_playlist_platform_csv_reports_platform_source_failure(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-placements.csv"
+    platform_path = tmp_path / "platform-activity.csv"
+    _write_playlist_placement_csv(path=playlist_path, rows=[_playlist_placement_row()])
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[_platform_activity_row(occurred_at="2026-07-19T12:00:00")],
+    )
+
+    result = runner.invoke(
+        app,
+        ["investigate-playlist-platform-csv", str(playlist_path), str(platform_path)],
+    )
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "field 'occurred_at' must be timezone-aware" in output
+    assert "Traceback" not in output
+
+
+def test_investigate_playlist_platform_csv_success_output_is_privacy_safe(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "secret-playlist-placements.csv"
+    platform_path = tmp_path / "secret-platform-activity.csv"
+    _write_playlist_placement_csv(
+        path=playlist_path,
+        rows=[
+            _playlist_placement_row(
+                summary="SECRET_PLAYLIST_NAME drove private engagement.",
+                reference="SECRET_PLAYLIST_REFERENCE",
+            )
+        ],
+    )
+    _write_platform_activity_csv(
+        path=platform_path,
+        rows=[
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000302",
+                summary="SECRET_STREAM_SOURCE increased streams.",
+                reference="SECRET_STREAM_REFERENCE",
+                signal="stream_growth",
+            ),
+            _platform_activity_row(
+                id="00000000-0000-0000-0000-000000000303",
+                summary="SECRET_SAVE_SOURCE increased saves.",
+                reference="SECRET_SAVE_REFERENCE",
+                signal="save_growth",
+            ),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["investigate-playlist-platform-csv", str(playlist_path), str(platform_path)],
+    )
+
+    assert result.exit_code == 0
+    assert "Conclusions: 1" in result.stdout
+    assert "SECRET_PLAYLIST_NAME" not in result.stdout
+    assert "SECRET_PLAYLIST_REFERENCE" not in result.stdout
+    assert "SECRET_STREAM_SOURCE" not in result.stdout
+    assert "SECRET_STREAM_REFERENCE" not in result.stdout
+    assert "SECRET_SAVE_SOURCE" not in result.stdout
+    assert "SECRET_SAVE_REFERENCE" not in result.stdout
+    assert "secret-playlist-placements" not in result.stdout
+    assert "secret-platform-activity" not in result.stdout
+
+
 def test_investigate_playlist_placement_csv_missing_required_kind_produces_no_conclusion(
     tmp_path: Path,
 ) -> None:

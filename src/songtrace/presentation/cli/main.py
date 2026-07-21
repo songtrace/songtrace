@@ -12,6 +12,7 @@ from songtrace.presentation.cli.loading import (
     load_and_import_evidence,
     load_and_import_playlist_placement_batch,
     load_and_import_playlist_placement_investigation_evidence,
+    load_and_import_playlist_platform_csv_investigation_evidence,
 )
 from songtrace.presentation.cli.options import (
     parse_optional_batch_id,
@@ -153,6 +154,59 @@ def investigate_playlist_placement_csv(
     _raw_records, evidence = load_and_import_playlist_placement_investigation_evidence(
         playlist_file,
         tuple(evidence_files),
+    )
+    observations = ObservationExtractor().extract(evidence)
+    result = SimpleInvestigator().investigate(observations)
+
+    match output_format:
+        case "text":
+            print_investigation_text_result(evidence, observations, result.conclusions)
+        case "json":
+            print_investigation_json_result(evidence, observations, result.conclusions)
+
+
+@app.command("investigate-playlist-platform-csv")
+def investigate_playlist_platform_csv(
+    playlist_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to a provider-neutral playlist placement CSV file.",
+        ),
+    ],
+    platform_files: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="One or more provider-neutral platform activity CSV files.",
+        ),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Investigate playlist placement evidence with platform activity CSV evidence."""
+
+    if not platform_files:
+        raise typer.BadParameter(
+            "at least one platform activity CSV file is required",
+            param_hint="platform_files",
+        )
+
+    output_format = parse_output_format(output)
+    _raw_records, evidence = load_and_import_playlist_platform_csv_investigation_evidence(
+        playlist_file,
+        tuple(platform_files),
     )
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)

@@ -70,6 +70,15 @@ uv run songtrace spotify-playlist-track-lookup 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcoj
 
 This is a current-state probe only. It can help validate accessible playlist data and future playlist evidence acquisition, but it does not prove historical placement, identify when a track was added, or explain why a spike occurred.
 
+If current playlist membership is found, it can be exported as provider-neutral playlist-placement evidence:
+
+```sh
+uv run songtrace export-spotify-playlist-placement 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N \
+  --occurred-at 2026-07-21T12:00:00+00:00
+```
+
+The exported record represents only the fact that the track was observed in the playlist at the supplied timestamp. It must not be treated as proof of historical add date, causal impact, or source attribution without supporting platform activity evidence.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

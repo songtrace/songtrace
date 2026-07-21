@@ -6,6 +6,28 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `export-spotify-playlist-placement`
+
+Check current Spotify playlist membership and export a positive match as raw playlist-placement evidence.
+
+```sh
+uv run songtrace export-spotify-playlist-placement 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N \
+  --occurred-at 2026-07-21T12:00:00+00:00 \
+  --track-artist "Warrel Dane" \
+  --track-title "Everything Is Fading" \
+  --track-isrc "GBDHC2120401"
+```
+
+This command writes `playlist_activity` evidence with the `playlist_placement` signal only when the track is currently found in the playlist. It does not infer when the track was added, whether the playlist caused a stream spike, or whether this placement existed historically.
+
+To write the JSON to a private local file:
+
+```sh
+uv run songtrace export-spotify-playlist-placement 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N \
+  --occurred-at 2026-07-21T12:00:00+00:00 \
+  --output-file .songtrace-private/everything-is-fading/spotify-playlist-placement.json
+```
+
 ### `spotify-playlist-track-lookup`
 
 Check whether a known Spotify playlist currently contains a known Spotify track.

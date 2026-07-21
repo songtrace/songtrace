@@ -42,6 +42,8 @@ from songtrace.providers import (
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
+    spotify_playlist_membership_to_raw_record,
+    spotify_playlist_placement_raw_records_to_json_text,
     spotify_track_metadata_raw_records_to_json_text,
     spotify_track_metadata_to_raw_record,
     summarize_ascap_work,
@@ -78,6 +80,96 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("export-spotify-playlist-placement")
+def export_spotify_playlist_placement_command(
+    spotify_playlist_id: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist ID to export current placement evidence from."),
+    ],
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to verify in the current playlist."),
+    ],
+    occurred_at: Annotated[
+        str,
+        typer.Option(
+            "--occurred-at",
+            help="Deterministic timezone-aware ISO timestamp for the placement evidence.",
+        ),
+    ],
+    observed_at: Annotated[
+        str | None,
+        typer.Option(
+            "--observed-at",
+            help="Optional deterministic timezone-aware ISO observation timestamp.",
+        ),
+    ] = None,
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-file",
+            help="Optional JSON file path to write. Prints JSON to stdout when omitted.",
+        ),
+    ] = None,
+    track_artist: Annotated[
+        str | None,
+        typer.Option(
+            "--track-artist",
+            help="Optional provider-neutral track artist for exported evidence.",
+        ),
+    ] = None,
+    track_title: Annotated[
+        str | None,
+        typer.Option(
+            "--track-title",
+            help="Optional provider-neutral track title for exported evidence.",
+        ),
+    ] = None,
+    track_isrc: Annotated[
+        str | None,
+        typer.Option(
+            "--track-isrc",
+            help="Optional provider-neutral track ISRC for exported evidence.",
+        ),
+    ] = None,
+) -> None:
+    """Export current Spotify playlist membership as raw placement evidence."""
+
+    parsed_occurred_at = parse_timezone_aware_datetime(
+        occurred_at,
+        field_name="occurred_at",
+        param_hint="--occurred-at",
+    )
+    parsed_observed_at = None
+    if observed_at is not None:
+        parsed_observed_at = parse_timezone_aware_datetime(
+            observed_at,
+            field_name="observed_at",
+            param_hint="--observed-at",
+        )
+    track = _parse_optional_export_track_identity(track_artist, track_title, track_isrc)
+
+    try:
+        membership = lookup_spotify_playlist_track_membership(
+            spotify_playlist_id,
+            spotify_track_id,
+        )
+        record = spotify_playlist_membership_to_raw_record(
+            membership,
+            occurred_at=parsed_occurred_at,
+            observed_at=parsed_observed_at,
+            track=track,
+        )
+        output = spotify_playlist_placement_raw_records_to_json_text((record,))
+        if output_file is None:
+            print(output, end="")
+            return
+        output_file.write_text(output, encoding="utf-8")
+    except (OSError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
 
 
 @app.command("spotify-playlist-track-lookup")
@@ -437,6 +529,27 @@ def investigate_playlist_platform_csv(
             print_investigation_text_result(evidence, observations, result.conclusions)
         case "json":
             print_investigation_json_result(evidence, observations, result.conclusions)
+
+
+def _parse_optional_export_track_identity(
+    artist: str | None,
+    title: str | None,
+    isrc: str | None,
+) -> TrackIdentity | None:
+    artist = _normalize_optional_text(artist)
+    title = _normalize_optional_text(title)
+    isrc = _normalize_optional_text(isrc)
+
+    if artist is None and title is None and isrc is None:
+        return None
+
+    if artist is None or title is None:
+        raise typer.BadParameter(
+            "exported track identity requires both --track-artist and --track-title",
+            param_hint="--track-artist/--track-title",
+        )
+
+    return TrackIdentity(artist=artist, title=title, isrc=isrc)
 
 
 def _parse_track_filter(

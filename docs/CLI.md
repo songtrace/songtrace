@@ -114,13 +114,45 @@ uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-plac
 
 Use this command when you have local playlist placement evidence that should normalize to `playlist_activity` with `playlist_placement`. The generic `validate-evidence` command still treats `.csv` files as generic raw evidence CSVs and does not auto-detect this specialized shape.
 
-SongTrace also provides an application-layer `PlatformActivityCsvRawEvidenceSource` for provider-neutral local stream/save growth evidence. Its required CSV fields are:
+SongTrace also provides `PlatformActivityCsvRawEvidenceSource` for provider-neutral local stream/save growth evidence. Its required CSV fields are:
 
 ```csv
 id,source_name,summary,occurred_at,observed_at,reference,signal
 ```
 
-`signal` must be `stream_growth` or `save_growth`. This source is intentionally explicit and is not auto-detected by the generic CLI CSV loader.
+`signal` must be `stream_growth` or `save_growth`. Use `investigate-playlist-platform-csv` when combining this shape with playlist placement evidence. This source is intentionally explicit and is not auto-detected by the generic CLI CSV loader.
+
+### `investigate-playlist-platform-csv`
+
+Run the deterministic investigation pipeline using one local playlist placement CSV file plus one or more local platform activity CSV files.
+
+```sh
+uv run songtrace investigate-playlist-platform-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/platform-activity.csv
+```
+
+This command uses:
+
+```text
+PlaylistPlacementCsvRawEvidenceSource -> RawEvidenceRecord
+PlatformActivityCsvRawEvidenceSource -> RawEvidenceRecord
+RawEvidenceRecord -> EvidenceImporter -> Evidence
+Evidence -> ObservationExtractor -> Observation -> SimpleInvestigator -> Conclusion
+```
+
+Records are combined deterministically: playlist placement records first, followed by platform activity files in argument order, preserving each file's source order.
+
+For machine-readable output:
+
+```sh
+uv run songtrace investigate-playlist-platform-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/platform-activity.csv \
+  --output json
+```
+
+Use this command for local attribution experiments where you have known playlist placement evidence and platform stream/save growth evidence. It does not enrich playlist metadata, search Spotify, perform historical playlist lookup, contact APIs, infer missing placements, or generate recommendations.
 
 ### `investigate-playlist-placement-csv`
 
@@ -152,7 +184,7 @@ uv run songtrace investigate-playlist-placement-csv \
   --output json
 ```
 
-Use this command to test whether known local playlist placement evidence can explain stream/save evidence through the existing rule catalog. Supplemental files currently use the generic raw evidence loaders. If you have platform activity rows in the specialized `PlatformActivityCsvRawEvidenceSource` shape, convert or load them explicitly in application code until a dedicated CLI command is justified.
+Use this command to test whether known local playlist placement evidence can explain stream/save evidence through the existing rule catalog when supplemental evidence is already in generic JSON, CSV, or XLSX raw evidence shape. For local platform activity CSV files, prefer `investigate-playlist-platform-csv`.
 
 It does not enrich playlist metadata, search Spotify, perform historical playlist lookup, contact APIs, infer missing placements, or generate recommendations.
 

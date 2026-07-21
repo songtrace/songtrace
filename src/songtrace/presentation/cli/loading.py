@@ -10,6 +10,7 @@ from songtrace.application import (
     EvidenceImporter,
     EvidenceImportError,
     JsonRawEvidenceSource,
+    PlatformActivityCsvRawEvidenceSource,
     PlaylistPlacementCsvRawEvidenceSource,
     RawEvidenceRecord,
     XlsxRawEvidenceSource,
@@ -55,6 +56,26 @@ def load_and_import_playlist_placement_investigation_evidence(
         raw_record_groups = [PlaylistPlacementCsvRawEvidenceSource(playlist_file).load()]
         raw_record_groups.extend(
             load_raw_records(evidence_file) for evidence_file in evidence_files
+        )
+        raw_records = tuple(record for group in raw_record_groups for record in group)
+        evidence = EvidenceImporter().import_records(raw_records)
+    except EvidenceImportError as error:
+        exit_with_import_error(error)
+    except (FileNotFoundError, ValueError) as error:
+        exit_with_source_error(error)
+
+    return raw_records, evidence
+
+
+def load_and_import_playlist_platform_csv_investigation_evidence(
+    playlist_file: Path,
+    platform_files: tuple[Path, ...],
+) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
+    try:
+        raw_record_groups = [PlaylistPlacementCsvRawEvidenceSource(playlist_file).load()]
+        raw_record_groups.extend(
+            PlatformActivityCsvRawEvidenceSource(platform_file).load()
+            for platform_file in platform_files
         )
         raw_records = tuple(record for group in raw_record_groups for record in group)
         evidence = EvidenceImporter().import_records(raw_records)

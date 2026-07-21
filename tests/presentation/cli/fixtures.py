@@ -29,6 +29,15 @@ _PLAYLIST_PLACEMENT_COLUMNS = (
     "observed_at",
     "reference",
 )
+_PLATFORM_ACTIVITY_COLUMNS = (
+    "id",
+    "source_name",
+    "summary",
+    "occurred_at",
+    "observed_at",
+    "reference",
+    "signal",
+)
 _ASCAP_LAYOUT_A_COLUMNS = (
     "DistributionYear",
     "Distribution Quarter",
@@ -81,6 +90,7 @@ __all__ = (
     "_ASCAP_INTERNATIONAL_INCOMING_COLUMNS",
     "_ASCAP_LAYOUT_A_COLUMNS",
     "_ASCAP_LAYOUT_B_COLUMNS",
+    "_PLATFORM_ACTIVITY_COLUMNS",
     "_PLAYLIST_PLACEMENT_COLUMNS",
     "Path",
     "_ascap_international_incoming_row",
@@ -93,12 +103,14 @@ __all__ = (
     "_inline_string_cell",
     "_matching_records",
     "_matching_rows",
+    "_platform_activity_row",
     "_playlist_placement_row",
     "_record",
     "_row",
     "_royalty_row",
     "_write_csv",
     "_write_json",
+    "_write_platform_activity_csv",
     "_write_playlist_placement_csv",
     "_write_table",
     "_write_xlsx",
@@ -118,6 +130,10 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 
 def _write_playlist_placement_csv(path: Path, rows: list[dict[str, str]]) -> None:
     _write_table(path, _PLAYLIST_PLACEMENT_COLUMNS, rows)
+
+
+def _write_platform_activity_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    _write_table(path, _PLATFORM_ACTIVITY_COLUMNS, rows)
 
 
 def _write_table(path: Path, columns: tuple[str, ...], rows: list[dict[str, str]]) -> None:
@@ -360,6 +376,27 @@ def _royalty_row() -> dict[str, str]:
         reference="royalty-statement:synthetic:2026-q2",
         signals="royalty_reported",
     )
+
+
+def _platform_activity_row(
+    *,
+    id: str = "00000000-0000-0000-0000-000000000302",
+    source_name: str = "local_platform_export",
+    summary: str = "Synthetic platform activity was reported.",
+    occurred_at: str = "2026-07-19T12:00:00+00:00",
+    observed_at: str = "",
+    reference: str = "platform-activity:synthetic:1",
+    signal: str = "stream_growth",
+) -> dict[str, str]:
+    return {
+        "id": id,
+        "source_name": source_name,
+        "summary": summary,
+        "occurred_at": occurred_at,
+        "observed_at": observed_at,
+        "reference": reference,
+        "signal": signal,
+    }
 
 
 def _playlist_placement_row(

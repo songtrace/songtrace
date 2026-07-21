@@ -137,6 +137,14 @@ Optional fields:
 
 The `signal` field must be either `stream_growth` or `save_growth`. Records normalize to `audience_activity` evidence with the matching structured signal. Datetimes must be timezone-aware ISO datetimes. The source does not contact Spotify, Apple Music, YouTube, TikTok, or any other platform API.
 
+To combine playlist placement CSV evidence with platform activity CSV evidence through the current deterministic investigation pipeline, use:
+
+```sh
+uv run songtrace investigate-playlist-platform-csv \
+  /absolute/path/to/local/private/playlist-placements.csv \
+  /absolute/path/to/local/private/platform-activity.csv
+```
+
 ## Smoke-test workflow
 
 Start by validating that a local file can cross the import boundary:

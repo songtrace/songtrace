@@ -218,7 +218,7 @@ def test_discover_spotify_playlist_track_memberships_rejects_invalid_inputs() ->
     with pytest.raises(ValueError, match="spotify_playlist_search_limit_out_of_range"):
         discover_spotify_playlist_track_memberships("query", "track-id", limit=0, env=env)
     with pytest.raises(ValueError, match="spotify_playlist_search_limit_out_of_range"):
-        discover_spotify_playlist_track_memberships("query", "track-id", limit=51, env=env)
+        discover_spotify_playlist_track_memberships("query", "track-id", limit=11, env=env)
 
 
 def test_discover_spotify_playlist_track_memberships_rejects_missing_credentials() -> None:

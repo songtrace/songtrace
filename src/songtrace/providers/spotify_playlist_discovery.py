@@ -82,7 +82,7 @@ def discover_spotify_playlist_track_memberships(
     query: str,
     spotify_track_id: str,
     *,
-    limit: int = 20,
+    limit: int = 10,
     env: Mapping[str, str | None] | None = None,
     token_provider: TokenProvider | None = None,
     playlist_search_requester: PlaylistSearchRequester | None = None,
@@ -105,7 +105,7 @@ def discover_spotify_playlist_track_memberships_for_queries(
     queries: tuple[str, ...],
     spotify_track_id: str,
     *,
-    limit: int = 20,
+    limit: int = 10,
     env: Mapping[str, str | None] | None = None,
     token_provider: TokenProvider | None = None,
     playlist_search_requester: PlaylistSearchRequester | None = None,
@@ -118,7 +118,7 @@ def discover_spotify_playlist_track_memberships_for_queries(
     if not normalized_track_id:
         msg = "spotify_track_id_required"
         raise ValueError(msg)
-    if limit < 1 or limit > 50:
+    if limit < 1 or limit > 10:
         msg = "spotify_playlist_search_limit_out_of_range"
         raise ValueError(msg)
 
@@ -202,7 +202,7 @@ def request_spotify_playlist_search(
 ) -> Mapping[str, object]:
     """Request Spotify playlist search results in provider order."""
 
-    if limit < 1 or limit > 50:
+    if limit < 1 or limit > 10:
         msg = "spotify_playlist_search_limit_out_of_range"
         raise ValueError(msg)
     return _request_spotify_json_object(

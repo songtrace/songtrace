@@ -26,6 +26,9 @@ htmlcov/
 .vscode/
 .idea/
 
+# Local private validation data
+.songtrace-private/
+
 .coverage
 coverage.xml
 htmlcov/

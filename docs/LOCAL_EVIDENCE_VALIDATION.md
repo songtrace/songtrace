@@ -53,7 +53,15 @@ Keep private validation files outside the repository when possible, for example:
 ~/Documents/songtrace-private-fixtures/
 ```
 
-If a file must be near the working tree temporarily, place it in a clearly local path that is not committed and verify `git status` before every commit.
+If a file must be near the working tree temporarily, use the repository-local ignored workspace:
+
+```text
+.songtrace-private/
+```
+
+This directory is ignored by git and is intended only for local private validation files. Do not place committed fixtures, generated examples, source code, credentials, or documentation there.
+
+Even when using an ignored local workspace, verify `git status` before every commit.
 
 Before committing, always run:
 
@@ -61,7 +69,7 @@ Before committing, always run:
 git status --short
 ```
 
-No private validation file should appear in the output.
+No private validation file should appear in the output. If a private file appears, stop and move it outside the repository or into `.songtrace-private/` before continuing.
 
 ## Current supported local source formats
 

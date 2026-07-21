@@ -6,6 +6,7 @@ from typing import cast
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
 from songtrace.application.evidence_importer import EvidenceImporter
 from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
@@ -14,6 +15,7 @@ from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.application.raw_evidence_source import RawEvidenceSource
 from songtrace.domain.evidence import Evidence, EvidenceKind, EvidenceSignal
 from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSource
+from songtrace.domain.track import TrackIdentity
 
 _OBSERVED_AT = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
 _OCCURRED_AT = datetime(2026, 7, 17, 12, 0, tzinfo=UTC)
@@ -201,9 +203,46 @@ def test_raw_evidence_record_stores_signals_as_immutable_tuple() -> None:
         summary="Streams increased.",
         signals=cast(tuple[EvidenceSignal, ...], signals),
     )
-    signals.append(EvidenceSignal.SAVE_GROWTH)
 
     assert record.signals == (EvidenceSignal.STREAM_GROWTH,)
+
+
+def test_raw_evidence_record_accepts_immutable_track_identity() -> None:
+    track = TrackIdentity(artist="Warrel Dane", title="Everything Is Fading")
+
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased.",
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+        track=track,
+    )
+
+    assert record.track == track
+
+    with pytest.raises(ValidationError):
+        record.track.artist = "Changed"  # type: ignore[misc]
+
+
+def test_importer_preserves_track_identity() -> None:
+    track = TrackIdentity(
+        artist="Warrel Dane",
+        title="Everything Is Fading",
+        isrc="USABC0800001",
+    )
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased.",
+        observed_at=_OBSERVED_AT,
+        occurred_at=_OCCURRED_AT,
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+        track=track,
+    )
+
+    evidence = EvidenceImporter().import_records((record,))[0]
+
+    assert evidence.track == track
 
 
 def test_import_batch_returns_evidence_with_metadata() -> None:

@@ -109,6 +109,7 @@ def _to_evidence(record: RawEvidenceRecord, fallback_observed_at: datetime) -> E
             occurred_at=record.occurred_at,
             reference=record.reference,
             signals=record.signals,
+            track=record.track,
             id=record.id,
         )
 
@@ -120,6 +121,7 @@ def _to_evidence(record: RawEvidenceRecord, fallback_observed_at: datetime) -> E
         occurred_at=record.occurred_at,
         reference=record.reference,
         signals=record.signals,
+        track=record.track,
     )
 
 

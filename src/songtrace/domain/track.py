@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class TrackIdentity(BaseModel):
-    """The identifying information for a musical track."""
+    """The provider-neutral identifying information for a musical track."""
 
     model_config = ConfigDict(
         frozen=True,
@@ -11,3 +11,4 @@ class TrackIdentity(BaseModel):
 
     artist: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    isrc: str | None = Field(default=None, min_length=1)

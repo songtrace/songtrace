@@ -7,6 +7,7 @@ from datetime import datetime
 from uuid import UUID
 
 from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+from songtrace.domain.track import TrackIdentity
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +21,7 @@ class RawEvidenceRecord:
     occurred_at: datetime | None = None
     reference: str | None = None
     signals: tuple[EvidenceSignal, ...] = ()
+    track: TrackIdentity | None = None
     id: UUID | None = None
 
     def __post_init__(self) -> None:

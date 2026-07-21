@@ -30,7 +30,7 @@ Generic JSON, CSV, and XLSX raw evidence sources currently support these optiona
 
 If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional and is treated as nonblank text when supplied.
 
-Track identity helps future provider and API evidence correlate facts to the same recording without relying on summary text. It does not currently perform fuzzy matching, ISRC validation, provider-ID matching, investigation filtering, or conclusion logic.
+Track identity helps provider and API evidence correlate facts to the same recording without relying on summary text. Current observation extraction uses exact track identity equality when both supporting evidence records include track identity, while preserving existing behavior when one or both records do not include track identity. It does not perform fuzzy matching, ISRC validation, provider-ID matching, investigation filtering, or conclusion logic.
 
 CLI output does not print track identity by default so local validation remains privacy-safe.
 

@@ -24,30 +24,30 @@ class ObservationExtractor:
         """Extract observations supported by the supplied evidence."""
 
         observations: list[Observation] = []
-        playlist_evidence = _find_first(evidence, _is_playlist_placement_evidence)
 
-        if playlist_evidence is not None:
-            stream_evidence = _find_first(evidence, _is_stream_growth_evidence)
-            if stream_evidence is not None:
-                observations.append(
-                    Observation(
-                        kind=ObservationKind.PLAYLIST_STREAM_GROWTH,
-                        summary="Streams increased after playlist placement.",
-                        supporting_evidence_ids=(playlist_evidence.id, stream_evidence.id),
-                        observed_at=self._clock(),
-                    )
+        stream_pair = _find_first_playlist_activity_pair(evidence, _is_stream_growth_evidence)
+        if stream_pair is not None:
+            playlist_evidence, stream_evidence = stream_pair
+            observations.append(
+                Observation(
+                    kind=ObservationKind.PLAYLIST_STREAM_GROWTH,
+                    summary="Streams increased after playlist placement.",
+                    supporting_evidence_ids=(playlist_evidence.id, stream_evidence.id),
+                    observed_at=self._clock(),
                 )
+            )
 
-            save_evidence = _find_first(evidence, _is_save_growth_evidence)
-            if save_evidence is not None:
-                observations.append(
-                    Observation(
-                        kind=ObservationKind.PLAYLIST_SAVE_GROWTH,
-                        summary="Save activity increased after playlist placement.",
-                        supporting_evidence_ids=(playlist_evidence.id, save_evidence.id),
-                        observed_at=self._clock(),
-                    )
+        save_pair = _find_first_playlist_activity_pair(evidence, _is_save_growth_evidence)
+        if save_pair is not None:
+            playlist_evidence, save_evidence = save_pair
+            observations.append(
+                Observation(
+                    kind=ObservationKind.PLAYLIST_SAVE_GROWTH,
+                    summary="Save activity increased after playlist placement.",
+                    supporting_evidence_ids=(playlist_evidence.id, save_evidence.id),
+                    observed_at=self._clock(),
                 )
+            )
 
         royalty_evidence = _find_first(evidence, _is_royalty_reported_evidence)
         if royalty_evidence is not None:
@@ -76,6 +76,30 @@ def _find_first(
             return item
 
     return None
+
+
+def _find_first_playlist_activity_pair(
+    evidence: tuple[Evidence, ...],
+    activity_predicate: Callable[[Evidence], bool],
+) -> tuple[Evidence, Evidence] | None:
+    for playlist_evidence in evidence:
+        if not _is_playlist_placement_evidence(playlist_evidence):
+            continue
+
+        for activity_evidence in evidence:
+            if activity_predicate(activity_evidence) and _has_compatible_track_identity(
+                playlist_evidence, activity_evidence
+            ):
+                return playlist_evidence, activity_evidence
+
+    return None
+
+
+def _has_compatible_track_identity(first: Evidence, second: Evidence) -> bool:
+    if first.track is None or second.track is None:
+        return True
+
+    return first.track == second.track
 
 
 def _is_playlist_placement_evidence(evidence: Evidence) -> bool:

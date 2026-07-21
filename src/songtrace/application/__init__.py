@@ -14,6 +14,7 @@ from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.application.raw_evidence_source import RawEvidenceSource
 from songtrace.application.rule_catalog import RuleCatalog
 from songtrace.application.simple_investigator import SimpleInvestigator
+from songtrace.application.xlsx_raw_evidence_source import XlsxRawEvidenceSource
 
 __all__ = [
     "CsvRawEvidenceSource",
@@ -32,4 +33,5 @@ __all__ = [
     "RawEvidenceSource",
     "RuleCatalog",
     "SimpleInvestigator",
+    "XlsxRawEvidenceSource",
 ]

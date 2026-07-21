@@ -23,6 +23,7 @@ from songtrace.application import (
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
+from songtrace.providers import profile_ascap_csv_layout
 
 app = typer.Typer(
     name="songtrace",
@@ -107,6 +108,30 @@ def investigate_evidence(
             _print_text_result(evidence, observations, result.conclusions)
         case "json":
             _print_json_result(evidence, observations, result.conclusions)
+
+
+@app.command("profile-ascap-csv-layout")
+def profile_ascap_csv_layout_command(
+    csv_files: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="One or more private local ASCAP CSV files to profile safely.",
+        ),
+    ],
+) -> None:
+    """Profile private ASCAP CSV layouts without exposing row values."""
+
+    try:
+        profile = profile_ascap_csv_layout(tuple(csv_files))
+    except (FileNotFoundError, ValueError) as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    print(profile.to_json())
 
 
 @app.command("validate-evidence")
@@ -346,7 +371,7 @@ def _print_import_error(error: EvidenceImportError) -> None:
     error_console.print(f"Error: {report.error_message}")
 
 
-def _print_source_error(error: ValueError) -> None:
+def _print_source_error(error: Exception) -> None:
     error_console.print("[bold red]Evidence source failed.[/bold red]")
     error_console.print(f"Error: {error}")
 

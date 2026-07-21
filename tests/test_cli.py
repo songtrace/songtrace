@@ -49,6 +49,27 @@ def test_investigate() -> None:
     assert "Awaiting evidence" in result.stdout
 
 
+def test_profile_ascap_csv_layout_outputs_safe_json(tmp_path: Path) -> None:
+    path = tmp_path / "42278445.csv"
+    path.write_text(
+        "Work ID,Work Title,Music User,Dollars,Performance Quarter\n"
+        "SECRET_WORK_ID,SECRET_WORK_TITLE,SECRET_USER,123.45,2Q2026\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["profile-ascap-csv-layout", str(path)])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["files"][0]["filename"] == "42278445.csv"
+    assert payload["files"][0]["numeric_filename"] is True
+    assert payload["files"][0]["row_count"] == 1
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_USER" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
 def test_validate_evidence_text_success(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())

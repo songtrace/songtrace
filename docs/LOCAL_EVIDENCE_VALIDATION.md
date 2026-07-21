@@ -228,6 +228,18 @@ Do not implement ASCAP-specific parsing, royalty-statement reconciliation, or PD
 
 For current provider-neutral royalty evidence semantics, see [Evidence Semantics](EVIDENCE_SEMANTICS.md).
 
+## Private-safe ASCAP CSV layout profiling
+
+ASCAP CSV royalty statements can use more than one provider-specific layout. Before implementing an ASCAP connector, use the private-safe profiler to compare local files without committing private data:
+
+```sh
+uv run songtrace profile-ascap-csv-layout .songtrace-private/ascap/42278445.csv
+```
+
+The profiler emits JSON containing aggregate schema information only. It does not normalize rows, produce `RawEvidenceRecord`, create domain `Evidence`, or run investigations.
+
+Do not paste profiler output into documentation until you have verified it contains no private row values, royalty amounts, account identifiers, work titles, party names, writer names, customer data, or screenshots.
+
 ## API-backed sources are later
 
 Local file validation should happen before live API integrations.

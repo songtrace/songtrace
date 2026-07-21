@@ -65,6 +65,29 @@ uv run songtrace validate-evidence examples/simple_investigation_evidence.json \
 
 The source name is import metadata. It should not introduce provider-specific behavior into the reasoning model.
 
+### `profile-ascap-csv-layout`
+
+Profile one or more private local ASCAP CSV statement files without exposing row values or sensitive statement details.
+
+```sh
+uv run songtrace profile-ascap-csv-layout .songtrace-private/ascap/42278445.csv
+```
+
+The command emits deterministic JSON with safe aggregate layout information, including:
+
+- filenames
+- row and column counts
+- header shapes
+- column blank/nonblank counts
+- distinct nonblank counts
+- date and period shape masks
+- numeric parse counts without totals or values
+- row-grain candidate counts
+
+It does not emit royalty amounts, work titles, party names, account IDs, writer names, customer data, screenshots, or row-level values.
+
+This is a local validation helper for understanding ASCAP CSV layouts. It is not an ASCAP connector and does not produce `RawEvidenceRecord` or domain `Evidence`.
+
 ### `investigate-evidence`
 
 Run the current deterministic investigation pipeline for a local raw evidence file.

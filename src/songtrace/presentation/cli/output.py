@@ -6,7 +6,7 @@ from songtrace.application import EvidenceImportBatch, RawEvidenceRecord
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
-from songtrace.providers import AscapWorkSummary, SpotifyEnvironmentStatus
+from songtrace.providers import AscapWorkSummary, SpotifyApiAccessStatus, SpotifyEnvironmentStatus
 
 console = Console()
 
@@ -99,6 +99,33 @@ def _print_ascap_breakdown(label: str, counts: tuple[tuple[str, int], ...]) -> N
             console.print(f"- {value}: {count}")
     else:
         console.print("- none: 0")
+
+
+def print_spotify_api_access_text_status(status: SpotifyApiAccessStatus) -> None:
+    console.print("[bold]SongTrace Spotify API Access[/bold]")
+    console.print()
+    console.print(f"Credentials configured: {'yes' if status.environment.is_configured else 'no'}")
+    console.print(f"Token request attempted: {'yes' if status.token_request_attempted else 'no'}")
+    console.print(f"Access granted: {'yes' if status.access_granted else 'no'}")
+    if status.environment.missing_variables:
+        console.print("Missing variables:")
+        for variable_name in status.environment.missing_variables:
+            console.print(f"- {variable_name}")
+    if status.failure_reason is not None:
+        console.print(f"Failure reason: {status.failure_reason}")
+
+
+def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None:
+    payload = {
+        "access_granted": status.access_granted,
+        "client_id_present": status.environment.client_id_present,
+        "client_secret_present": status.environment.client_secret_present,
+        "credentials_configured": status.environment.is_configured,
+        "failure_reason": status.failure_reason,
+        "missing_variables": list(status.environment.missing_variables),
+        "token_request_attempted": status.token_request_attempted,
+    }
+    print(json.dumps(payload, sort_keys=True))
 
 
 def print_spotify_environment_text_status(status: SpotifyEnvironmentStatus) -> None:

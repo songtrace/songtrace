@@ -26,6 +26,8 @@ from songtrace.presentation.cli.output import (
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
     print_investigation_text_result,
+    print_spotify_api_access_json_status,
+    print_spotify_api_access_text_status,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
     print_validation_json_result,
@@ -34,6 +36,7 @@ from songtrace.presentation.cli.output import (
 from songtrace.providers import (
     profile_ascap_csv_layout,
     summarize_ascap_work,
+    validate_spotify_api_access,
     validate_spotify_environment,
 )
 
@@ -66,6 +69,31 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("validate-spotify-api-access")
+def validate_spotify_api_access_command(
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Validate Spotify API access without exposing credentials or tokens."""
+
+    output_format = parse_output_format(output)
+    status = validate_spotify_api_access()
+
+    match output_format:
+        case "text":
+            print_spotify_api_access_text_status(status)
+        case "json":
+            print_spotify_api_access_json_status(status)
+
+    if not status.access_granted:
+        raise typer.Exit(1)
 
 
 @app.command("validate-spotify-environment")

@@ -6,6 +6,24 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `validate-spotify-api-access`
+
+Validate whether local Spotify developer credentials can obtain a client-credentials access token without exposing credential or token values.
+
+```sh
+uv run songtrace validate-spotify-api-access
+```
+
+This command reads the same environment variables as `validate-spotify-environment` and makes a single request to Spotify Accounts using the client credentials flow. It reports only safe success/failure status. It does not print tokens, store tokens, call Spotify Web API data endpoints, run a browser OAuth flow, or create evidence.
+
+For machine-readable output:
+
+```sh
+uv run songtrace validate-spotify-api-access --output json
+```
+
+The command exits non-zero when required credentials are missing or token validation fails.
+
 ### `validate-spotify-environment`
 
 Validate whether local Spotify developer environment variables are present without exposing credential values.

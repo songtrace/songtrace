@@ -280,6 +280,14 @@ uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<priva
 
 Breakdowns may include distribution periods/dates, territories/countries, revenue classes, and statement types. They still do not include row-level values, royalty amounts, account IDs, party names, writer names, work IDs, work titles, filenames, or source row numbers.
 
+Use `--include-attribution-gaps` to make the current attribution limitation explicit:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --include-attribution-gaps
+```
+
+ASCAP royalty statements are downstream evidence. They can show that royalty activity was reported, but they cannot by themselves identify the exact upstream source of engagement, such as a playlist, social post, video, campaign, algorithmic recommendation, or distributor usage source.
+
 This command helps identify what evidence exists for a real work before expanding the domain model. It does not create `RawEvidenceRecord`, domain `Evidence`, observations, conclusions, or recommendations.
 
 ## API-backed sources are later

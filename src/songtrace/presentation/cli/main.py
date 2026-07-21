@@ -210,6 +210,13 @@ def summarize_ascap_work_command(
             help="Include opt-in aggregate breakdown labels and counts.",
         ),
     ] = False,
+    include_attribution_gaps: Annotated[
+        bool,
+        typer.Option(
+            "--include-attribution-gaps",
+            help="Include source-attribution status and missing upstream evidence categories.",
+        ),
+    ] = False,
     output: Annotated[
         str,
         typer.Option(
@@ -233,9 +240,18 @@ def summarize_ascap_work_command(
 
     match output_format:
         case "text":
-            _print_ascap_work_summary_text_result(summary, include_breakdowns=include_breakdowns)
+            _print_ascap_work_summary_text_result(
+                summary,
+                include_breakdowns=include_breakdowns,
+                include_attribution_gaps=include_attribution_gaps,
+            )
         case "json":
-            print(summary.to_json(include_breakdowns=include_breakdowns))
+            print(
+                summary.to_json(
+                    include_breakdowns=include_breakdowns,
+                    include_attribution_gaps=include_attribution_gaps,
+                )
+            )
 
 
 @app.command("validate-evidence")
@@ -446,7 +462,7 @@ def _print_json_result(
 
 
 def _print_ascap_work_summary_text_result(
-    summary: AscapWorkSummary, *, include_breakdowns: bool
+    summary: AscapWorkSummary, *, include_breakdowns: bool, include_attribution_gaps: bool
 ) -> None:
     console.print("[bold]SongTrace ASCAP Work Summary[/bold]")
     console.print()
@@ -467,6 +483,18 @@ def _print_ascap_work_summary_text_result(
         _print_ascap_breakdown("Distribution periods/dates", summary.distribution_period_counts)
         _print_ascap_breakdown("Territories/countries", summary.territory_counts)
         _print_ascap_breakdown("Revenue classes", summary.revenue_class_counts)
+
+    if include_attribution_gaps:
+        _print_ascap_attribution_gaps(summary)
+
+
+def _print_ascap_attribution_gaps(summary: AscapWorkSummary) -> None:
+    console.print()
+    console.print("[bold]Source attribution[/bold]")
+    console.print(f"Status: {summary.source_attribution_status}")
+    console.print("Missing upstream evidence:")
+    for evidence_type in summary.missing_upstream_evidence:
+        console.print(f"- {evidence_type}")
 
 
 def _print_ascap_breakdown(label: str, counts: tuple[tuple[str, int], ...]) -> None:

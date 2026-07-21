@@ -51,6 +51,15 @@ _INTERNATIONAL_INCOMING_REQUIRED_FIELDS = frozenset(
     }
 )
 StatementType = Literal["domestic", "international_incoming"]
+_ATTRIBUTION_MISSING_UPSTREAM_EVIDENCE = (
+    "campaign_activity_logs",
+    "distributor_usage_source_evidence",
+    "platform_source_breakdowns",
+    "playlist_placement_evidence",
+    "social_post_evidence",
+    "video_traffic_source_evidence",
+)
+_NO_MATCH_MISSING_EVIDENCE = ("matching_royalty_activity",)
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,14 +73,25 @@ class AscapWorkSummary:
     distribution_period_counts: tuple[tuple[str, int], ...]
     territory_counts: tuple[tuple[str, int], ...]
     revenue_class_counts: tuple[tuple[str, int], ...]
+    source_attribution_status: str
+    missing_upstream_evidence: tuple[str, ...]
     distribution_period_count: int
     territory_count: int
     revenue_class_count: int
 
-    def to_json(self, *, include_breakdowns: bool = False) -> str:
+    def to_json(
+        self, *, include_breakdowns: bool = False, include_attribution_gaps: bool = False
+    ) -> str:
         """Serialize the safe summary as deterministic JSON."""
 
-        return json.dumps(_to_jsonable(self, include_breakdowns=include_breakdowns), sort_keys=True)
+        return json.dumps(
+            _to_jsonable(
+                self,
+                include_breakdowns=include_breakdowns,
+                include_attribution_gaps=include_attribution_gaps,
+            ),
+            sort_keys=True,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +142,10 @@ def summarize_ascap_work(
         if file_matched:
             matched_file_count += 1
 
+    source_attribution_status, missing_upstream_evidence = _source_attribution_gap(
+        matched_row_count
+    )
+
     return AscapWorkSummary(
         scanned_file_count=len(files),
         matched_file_count=matched_file_count,
@@ -130,6 +154,8 @@ def summarize_ascap_work(
         distribution_period_counts=tuple(sorted(distribution_period_counts.items())),
         territory_counts=tuple(sorted(territory_counts.items())),
         revenue_class_counts=tuple(sorted(revenue_class_counts.items())),
+        source_attribution_status=source_attribution_status,
+        missing_upstream_evidence=missing_upstream_evidence,
         distribution_period_count=len(distribution_period_counts),
         territory_count=len(territory_counts),
         revenue_class_count=len(revenue_class_counts),
@@ -236,7 +262,18 @@ def _count_if_present(counter: Counter[str], value: str | None) -> None:
         counter[value.strip()] += 1
 
 
-def _to_jsonable(summary: AscapWorkSummary, *, include_breakdowns: bool) -> dict[str, Any]:
+def _source_attribution_gap(matched_row_count: int) -> tuple[str, tuple[str, ...]]:
+    if matched_row_count == 0:
+        return "no_matching_royalty_activity", _NO_MATCH_MISSING_EVIDENCE
+    return (
+        "royalty_activity_found_upstream_source_unknown",
+        _ATTRIBUTION_MISSING_UPSTREAM_EVIDENCE,
+    )
+
+
+def _to_jsonable(
+    summary: AscapWorkSummary, *, include_breakdowns: bool, include_attribution_gaps: bool
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "distribution_period_count": summary.distribution_period_count,
         "matched_file_count": summary.matched_file_count,
@@ -252,5 +289,10 @@ def _to_jsonable(summary: AscapWorkSummary, *, include_breakdowns: bool) -> dict
             "revenue_classes": dict(summary.revenue_class_counts),
             "statement_types": dict(summary.statement_type_counts),
             "territories": dict(summary.territory_counts),
+        }
+    if include_attribution_gaps:
+        payload["source_attribution"] = {
+            "missing_upstream_evidence": summary.missing_upstream_evidence,
+            "status": summary.source_attribution_status,
         }
     return payload

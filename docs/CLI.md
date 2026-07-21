@@ -81,13 +81,21 @@ PlaylistPlacementCsvRawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -
 
 It does not extract observations, evaluate rules, produce conclusions, enrich playlist metadata, or contact external APIs.
 
-The CSV shape is intentionally narrow:
+The required CSV shape is intentionally narrow:
 
 ```csv
 id,source_name,summary,occurred_at,observed_at,reference
 ```
 
 `id`, `source_name`, `summary`, `occurred_at`, and `reference` are required. `observed_at` is optional. Datetimes must be timezone-aware ISO datetimes.
+
+Playlist placement CSV files may also include optional track identity fields:
+
+```csv
+track_artist,track_title,track_isrc
+```
+
+If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional. Validation and investigation output do not print track identity by default.
 
 For machine-readable validation output:
 

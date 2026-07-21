@@ -299,11 +299,19 @@ This command helps identify what evidence exists for a real work before expandin
 
 SongTrace includes `PlaylistPlacementCsvRawEvidenceSource` for local, user-supplied playlist placement events. This supports one upstream evidence category that can help explain royalty or stream changes without requiring a live Spotify or playlist API integration.
 
-The CSV shape is intentionally narrow:
+The required CSV shape is intentionally narrow:
 
 ```csv
 id,source_name,summary,occurred_at,observed_at,reference
 ```
+
+Playlist placement CSV files may also include optional provider-neutral track identity fields:
+
+```csv
+track_artist,track_title,track_isrc
+```
+
+If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional. CLI validation and investigation output do not print track identity by default.
 
 The source produces `playlist_activity` evidence with the `playlist_placement` signal. It does not enrich playlist metadata, search platforms, call APIs, or claim that a playlist caused engagement by itself. It only imports known playlist placement evidence that can later be evaluated alongside stream, save, royalty, and other evidence.
 

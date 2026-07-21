@@ -84,6 +84,64 @@ def test_parses_optional_observed_at(tmp_path: Path) -> None:
     assert records[0].observed_at == datetime(2026, 1, 16, 12, 0, tzinfo=UTC)
 
 
+def test_current_csv_shape_remains_valid_without_track_identity(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    _write_csv(path, [_row()])
+
+    records = PlaylistPlacementCsvRawEvidenceSource(path).load()
+
+    assert records[0].track is None
+
+
+def test_parses_optional_track_identity(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    columns = (*_COLUMNS, "track_artist", "track_title", "track_isrc")
+    _write_table(
+        path,
+        columns,
+        [
+            _row(
+                track_artist="Warrel Dane",
+                track_title="Everything Is Fading",
+                track_isrc="USABC0800001",
+            )
+        ],
+    )
+
+    records = PlaylistPlacementCsvRawEvidenceSource(path).load()
+
+    assert records[0].track is not None
+    assert records[0].track.artist == "Warrel Dane"
+    assert records[0].track.title == "Everything Is Fading"
+    assert records[0].track.isrc == "USABC0800001"
+
+
+def test_missing_track_title_fails_when_track_identity_is_supplied(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    columns = (*_COLUMNS, "track_artist", "track_title", "track_isrc")
+    _write_table(path, columns, [_row(track_artist="Warrel Dane", track_title="")])
+
+    with pytest.raises(ValueError, match="field 'track_title' is required"):
+        PlaylistPlacementCsvRawEvidenceSource(path).load()
+
+
+def test_blank_track_isrc_is_ignored_as_absent(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    columns = (*_COLUMNS, "track_artist", "track_title", "track_isrc")
+    _write_table(
+        path,
+        columns,
+        [_row(track_artist="Warrel Dane", track_title="Everything Is Fading", track_isrc="")],
+    )
+
+    records = PlaylistPlacementCsvRawEvidenceSource(path).load()
+
+    assert records[0].track is not None
+    assert records[0].track.isrc is None
+
+
 def test_file_not_found_fails_clearly(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="Playlist placement CSV file not found"):
         PlaylistPlacementCsvRawEvidenceSource(tmp_path / "missing.csv").load()
@@ -182,6 +240,34 @@ def test_loaded_records_are_compatible_with_evidence_importer(tmp_path: Path) ->
     assert evidence[0].observed_at == fallback_observed_at
 
 
+def test_imported_playlist_placement_evidence_preserves_track_identity(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    columns = (*_COLUMNS, "track_artist", "track_title", "track_isrc")
+    _write_table(
+        path,
+        columns,
+        [
+            _row(
+                track_artist="Warrel Dane",
+                track_title="Everything Is Fading",
+                track_isrc="USABC0800001",
+            )
+        ],
+    )
+
+    records = PlaylistPlacementCsvRawEvidenceSource(path).load()
+    evidence = EvidenceImporter(
+        clock=lambda: datetime(2026, 1, 16, 12, 0, tzinfo=UTC)
+    ).import_records(records)
+
+    assert evidence[0].track is not None
+    assert evidence[0].track.artist == "Warrel Dane"
+    assert evidence[0].track.title == "Everything Is Fading"
+    assert evidence[0].track.isrc == "USABC0800001"
+
+
 def test_playlist_records_can_support_existing_observations(tmp_path: Path) -> None:
     path = tmp_path / "playlist-placements.csv"
     _write_csv(path, [_row()])
@@ -239,6 +325,9 @@ def _row(
     occurred_at: str = "2026-01-15T12:00:00+00:00",
     observed_at: str = "",
     reference: str = "spotify-playlist:example-playlist",
+    track_artist: str = "",
+    track_title: str = "",
+    track_isrc: str = "",
 ) -> dict[str, str]:
     return {
         "id": id,
@@ -247,4 +336,7 @@ def _row(
         "occurred_at": occurred_at,
         "observed_at": observed_at,
         "reference": reference,
+        "track_artist": track_artist,
+        "track_title": track_title,
+        "track_isrc": track_isrc,
     }

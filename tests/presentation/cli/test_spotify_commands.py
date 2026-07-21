@@ -9,6 +9,152 @@ from songtrace.providers import SpotifyPlaylistTrackMembership, SpotifyTrackMeta
 from tests.presentation.cli.fixtures import *
 
 
+def test_export_spotify_playlist_placement_prints_json_stdout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def lookup(playlist_id: str, track_id: str) -> SpotifyPlaylistTrackMembership:
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id=playlist_id,
+            playlist_name="Metal Essentials",
+            spotify_track_id=track_id,
+            contains_track=True,
+            matched_track_ids=(track_id,),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-placement",
+            "playlist-id",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--observed-at",
+            "2026-07-21T12:05:00+00:00",
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "GBDHC2120401",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == [
+        {
+            "id": "645f695e-798b-54bd-b84f-750600a96ceb",
+            "kind": "playlist_activity",
+            "occurred_at": "2026-07-21T12:00:00+00:00",
+            "observed_at": "2026-07-21T12:05:00+00:00",
+            "reference": "spotify:playlist:playlist-id:track:spotify-track-id",
+            "signals": ["playlist_placement"],
+            "source_name": "spotify",
+            "summary": (
+                "Spotify current playlist membership observed track spotify-track-id "
+                "in playlist Metal Essentials."
+            ),
+            "track_artist": "Warrel Dane",
+            "track_isrc": "GBDHC2120401",
+            "track_title": "Everything Is Fading",
+        }
+    ]
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_export_spotify_playlist_placement_writes_importable_json_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output_file = tmp_path / "spotify-playlist-placement.json"
+
+    def lookup(_playlist_id: str, _track_id: str) -> SpotifyPlaylistTrackMembership:
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id="playlist-id",
+            spotify_track_id="spotify-track-id",
+            contains_track=True,
+            matched_track_ids=("spotify-track-id",),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-placement",
+            "playlist-id",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--output-file",
+            str(output_file),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout == ""
+    raw_records = JsonRawEvidenceSource(output_file).load()
+    evidence = EvidenceImporter(clock=lambda: datetime(2026, 7, 21, 13, tzinfo=UTC)).import_records(
+        raw_records
+    )
+    assert len(evidence) == 1
+    assert evidence[0].reference == "spotify:playlist:playlist-id:track:spotify-track-id"
+
+
+def test_export_spotify_playlist_placement_rejects_incomplete_track_identity() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-placement",
+            "playlist-id",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--track-artist",
+            "Warrel Dane",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "requires both --track-artist and --track-title" in result.stderr
+
+
+def test_export_spotify_playlist_placement_membership_not_found_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def lookup(_playlist_id: str, _track_id: str) -> SpotifyPlaylistTrackMembership:
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id="playlist-id",
+            spotify_track_id="spotify-track-id",
+            contains_track=False,
+            matched_track_ids=(),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-placement",
+            "playlist-id",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "spotify_playlist_membership_not_found" in result.stderr
+    assert "SECRET_CLIENT_ID" not in result.stderr
+    assert "SECRET_CLIENT_SECRET" not in result.stderr
+    assert "SECRET_TOKEN" not in result.stderr
+    assert "access_token" not in result.stderr
+
+
 def test_spotify_playlist_track_lookup_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
     def lookup(playlist_id: str, track_id: str) -> SpotifyPlaylistTrackMembership:
         return SpotifyPlaylistTrackMembership(

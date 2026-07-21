@@ -29,6 +29,10 @@ from songtrace.providers.spotify_playlist_membership import (
     SpotifyPlaylistTrackMembership,
     lookup_spotify_playlist_track_membership,
 )
+from songtrace.providers.spotify_playlist_placement_export import (
+    spotify_playlist_membership_to_raw_record,
+    spotify_playlist_placement_raw_records_to_json_text,
+)
 from songtrace.providers.spotify_track_lookup import (
     SpotifyTrackMetadata,
     lookup_spotify_track_metadata,
@@ -58,6 +62,8 @@ __all__ = [
     "lookup_spotify_track_metadata",
     "profile_ascap_csv_layout",
     "spotify_connector_descriptor",
+    "spotify_playlist_membership_to_raw_record",
+    "spotify_playlist_placement_raw_records_to_json_text",
     "spotify_track_metadata_raw_records_to_json_text",
     "spotify_track_metadata_to_raw_record",
     "summarize_ascap_work",

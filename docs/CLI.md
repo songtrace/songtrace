@@ -11,7 +11,7 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 Search Spotify public playlists by query and verify whether a track is currently present in the returned candidate playlists.
 
 ```sh
-uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N --limit 20
+uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N --limit 10
 ```
 
 Add repeated `--query` options to broaden candidate discovery while preserving deterministic order:
@@ -20,7 +20,7 @@ Add repeated `--query` options to broaden candidate discovery while preserving d
 uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N \
   --query "Warrel Dane" \
   --query "Praises to the War Machine" \
-  --limit 20
+  --limit 10
 ```
 
 This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, de-duplicates repeated playlist IDs in first-seen order, then verifies current membership for each candidate. `--limit` applies per query.

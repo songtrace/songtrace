@@ -190,10 +190,10 @@ def spotify_playlist_search_command(
         typer.Option(
             "--limit",
             min=1,
-            max=50,
+            max=10,
             help="Maximum Spotify playlist search results to verify per query.",
         ),
-    ] = 20,
+    ] = 10,
     additional_queries: Annotated[
         list[str] | None,
         typer.Option(
@@ -265,10 +265,10 @@ def export_spotify_playlist_search_placements_command(
         typer.Option(
             "--limit",
             min=1,
-            max=50,
+            max=10,
             help="Maximum Spotify playlist search results to verify per query.",
         ),
-    ] = 20,
+    ] = 10,
     additional_queries: Annotated[
         list[str] | None,
         typer.Option(

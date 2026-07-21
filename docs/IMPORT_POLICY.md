@@ -73,6 +73,8 @@ Current file sources include:
 
 Each source returns immutable `tuple[RawEvidenceRecord, ...]` values in deterministic input order.
 
+For safe local experiments with private real-world files, see [Local Evidence Validation Guide](LOCAL_EVIDENCE_VALIDATION.md).
+
 ## Non-goals
 
 SongTrace does not currently support configurable partial imports.

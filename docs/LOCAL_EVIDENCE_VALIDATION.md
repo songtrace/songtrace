@@ -1,0 +1,195 @@
+# Local Evidence Validation Guide
+
+## Purpose
+
+SongTrace should eventually be validated against real-world exports, reports, statements, and source files. This guide explains how to do that safely during local development without committing private data or prematurely introducing provider-specific connectors.
+
+Local evidence validation is an architecture feedback activity. Its goal is to learn whether real files can be normalized into SongTrace's current provider-neutral evidence model:
+
+```text
+RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
+```
+
+It is not a commitment to implement a provider integration yet.
+
+## When to use local real data
+
+Local real-data validation is appropriate when you want to answer questions such as:
+
+- Can real export rows be mapped into `RawEvidenceRecord` fields?
+- Are existing `EvidenceKind` values sufficient for the evidence being tested?
+- Are existing `EvidenceSignal` values too narrow or ambiguous?
+- Is `source_name` enough to preserve basic provenance for this source?
+- Are `occurred_at`, `observed_at`, and `reference` expressive enough for the file?
+- Are validation errors clear enough to help a user fix malformed input?
+- Does the import remain deterministic across repeated runs?
+- Does private source data reveal a concrete need for new provider-neutral metadata?
+
+If local validation reveals a gap, document the gap and create a focused ticket. Do not add broad abstractions until the gap is tied to a current product need.
+
+## Private data rules
+
+Do not commit private or sensitive data to the repository.
+
+This includes:
+
+- royalty statements
+- distributor exports
+- platform analytics exports
+- private CSV, XLSX, PDF, or JSON files
+- API credentials
+- OAuth tokens
+- customer, artist, writer, label, publisher, or financial data
+- screenshots or logs containing private data
+
+Use synthetic fixtures for committed automated tests. Real files may be used locally only when they are authorized for your own development environment.
+
+## Recommended local file locations
+
+Keep private validation files outside the repository when possible, for example:
+
+```text
+~/songtrace-private-fixtures/
+~/Documents/songtrace-private-fixtures/
+```
+
+If a file must be near the working tree temporarily, place it in a clearly local path that is not committed and verify `git status` before every commit.
+
+Before committing, always run:
+
+```sh
+git status --short
+```
+
+No private validation file should appear in the output.
+
+## Current supported local source formats
+
+SongTrace currently has generic raw evidence sources for:
+
+- JSON: `JsonRawEvidenceSource`
+- CSV: `CsvRawEvidenceSource`
+- XLSX: `XlsxRawEvidenceSource`
+
+These sources expect provider-neutral evidence fields. They are not provider-specific importers.
+
+### Required fields
+
+Generic raw evidence files currently require:
+
+- `id`
+- `source_name`
+- `kind`
+- `summary`
+- `occurred_at`
+- `signals`
+
+### Optional fields
+
+Generic raw evidence files may include:
+
+- `observed_at`
+- `reference`
+
+`occurred_at` and `observed_at`, when supplied, must be timezone-aware ISO datetimes.
+
+## Smoke-test workflow
+
+Use the existing source that matches the file shape you want to validate:
+
+```python
+from datetime import UTC, datetime
+from pathlib import Path
+
+from songtrace.application import (
+    CsvRawEvidenceSource,
+    EvidenceImporter,
+    JsonRawEvidenceSource,
+    ObservationExtractor,
+    SimpleInvestigator,
+    XlsxRawEvidenceSource,
+)
+
+path = Path("/absolute/path/to/local/private/evidence.csv")
+source = CsvRawEvidenceSource(path)
+
+# Alternatives:
+# source = JsonRawEvidenceSource(Path("/absolute/path/to/local/private/evidence.json"))
+# source = XlsxRawEvidenceSource(Path("/absolute/path/to/local/private/evidence.xlsx"))
+
+records = source.load()
+evidence = EvidenceImporter(clock=lambda: datetime.now(UTC)).import_records(records)
+observations = ObservationExtractor(clock=lambda: datetime.now(UTC)).extract(evidence)
+result = SimpleInvestigator().investigate(observations)
+
+print(f"records: {len(records)}")
+print(f"evidence: {len(evidence)}")
+print(f"observations: {len(observations)}")
+print(f"conclusions: {len(result.conclusions)}")
+```
+
+This verifies the current deterministic pipeline without adding a provider connector.
+
+## Interpreting failures
+
+A local validation failure can mean different things:
+
+| Failure type | Likely meaning | Preferred response |
+| --- | --- | --- |
+| File parse failure | The file does not match the generic JSON, CSV, or XLSX shape. | Use a temporary local transformation outside the repo, or create a future connector ticket if the format is important. |
+| Invalid enum value | The evidence does not fit current `EvidenceKind` or `EvidenceSignal` values. | Document the missing provider-neutral classification. |
+| Missing timestamp | The source may require different event-period modeling. | Document the date semantics before changing the model. |
+| Missing provenance | `source_name` and `reference` may not be enough. | Create a focused provenance metadata ticket if justified. |
+| No observations | The evidence imported successfully but current observation extraction rules do not use it yet. | Consider whether a new deterministic observation is justified. |
+| No conclusions | The evidence produced observations but no catalog rule matched. | Consider whether a new `InvestigationRule` is justified. |
+
+Do not treat every local validation failure as an implementation bug. Some failures are useful evidence that the product model needs a future, focused extension.
+
+## ASCAP-style royalty statements
+
+ASCAP CSV and PDF royalty statements are useful examples of future private validation files. They should remain local and private.
+
+They may eventually help validate whether SongTrace can:
+
+- import ASCAP CSV royalty statements
+- import ASCAP PDF royalty statements
+- normalize both into provider-neutral evidence
+- reconcile both representations of the same statement
+- preserve provenance for every imported fact
+- record confidence where appropriate
+- verify deterministic imports through automated tests
+
+Do not implement ASCAP-specific parsing, royalty-statement reconciliation, or PDF ingestion until a dedicated ticket is created.
+
+## API-backed sources are later
+
+Local file validation should happen before live API integrations.
+
+API-backed sources introduce additional concerns that are separate from the evidence model:
+
+- OAuth and delegated authorization
+- API keys and secret storage
+- pagination
+- rate limits
+- retries
+- network failures
+- provider terms
+- schema drift
+- fixture recording
+- data retention and privacy policies
+
+Those concerns should be designed only after the evidence model and import boundary have been validated against local files. The reasoning engine must remain unaware of whether evidence came from a local CSV, an OAuth API, a PDF report, or a future webhook.
+
+## What to document after a local validation run
+
+When a private local validation reveals something useful, capture only safe, non-sensitive notes:
+
+- source type tested, such as `ASCAP CSV statement` or `distributor XLSX export`
+- whether it could be mapped to existing `RawEvidenceRecord` fields
+- missing provider-neutral fields or enum values
+- unclear timestamp semantics
+- provenance or confidence gaps
+- deterministic ordering concerns
+- recommended next focused ticket
+
+Do not include private row values, royalty amounts, account identifiers, names, statements, credentials, or screenshots.

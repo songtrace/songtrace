@@ -197,6 +197,8 @@ The importer should remain atomic unless a concrete product need justifies a dif
 
 This policy supports deterministic imports, repeatable tests, idempotency checks, and trustworthy provenance. See [Evidence Import Policy](../IMPORT_POLICY.md) for the current application-level contract.
 
+Before API-backed connectors are introduced, contributors should use private local files only as architecture validation inputs. See [Local Evidence Validation Guide](../LOCAL_EVIDENCE_VALIDATION.md) for the safe workflow.
+
 ## Authentication and Secret Management
 
 Future API-backed Evidence Connectors will need authentication and secret handling, but those concerns must remain outside the domain reasoning model.

@@ -18,6 +18,22 @@ Examples:
 
 Both timestamps must be timezone-aware when supplied.
 
+## Optional track identity
+
+Evidence may include provider-neutral track identity metadata when the source record explicitly supplies it.
+
+Generic JSON, CSV, and XLSX raw evidence sources currently support these optional flat fields:
+
+- `track_artist`
+- `track_title`
+- `track_isrc`
+
+If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional and is treated as nonblank text when supplied.
+
+Track identity helps future provider and API evidence correlate facts to the same recording without relying on summary text. It does not currently perform fuzzy matching, ISRC validation, provider-ID matching, investigation filtering, or conclusion logic.
+
+CLI output does not print track identity by default so local validation remains privacy-safe.
+
 ## Evidence signals
 
 Signals are structured provider-neutral labels that make evidence machine-interpretable. Evidence may have no structured signals when the fact is valid but SongTrace has not yet defined a signal for it.

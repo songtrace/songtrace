@@ -23,6 +23,9 @@ _COLUMNS = (
     "observed_at",
     "reference",
     "signals",
+    "track_artist",
+    "track_title",
+    "track_isrc",
 )
 
 
@@ -130,6 +133,46 @@ def test_parses_optional_timezone_aware_observed_at(tmp_path: Path) -> None:
     records = CsvRawEvidenceSource(path).load()
 
     assert records[0].observed_at == datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
+
+
+def test_parses_optional_track_identity(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.csv"
+    _write_csv(
+        path,
+        [
+            _row(
+                track_artist="Warrel Dane",
+                track_title="Everything Is Fading",
+                track_isrc="USABC0800001",
+            )
+        ],
+    )
+
+    records = CsvRawEvidenceSource(path).load()
+
+    assert records[0].track is not None
+    assert records[0].track.artist == "Warrel Dane"
+    assert records[0].track.title == "Everything Is Fading"
+    assert records[0].track.isrc == "USABC0800001"
+
+
+def test_missing_track_identity_remains_valid(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.csv"
+    _write_csv(path, [_row()])
+
+    records = CsvRawEvidenceSource(path).load()
+
+    assert records[0].track is None
+
+
+def test_missing_track_title_fails_when_track_identity_is_supplied(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "evidence.csv"
+    _write_csv(path, [_row(track_artist="Warrel Dane", track_title="")])
+
+    with pytest.raises(ValueError, match="field 'track_title' is required"):
+        CsvRawEvidenceSource(path).load()
 
 
 def test_file_not_found_fails_clearly(tmp_path: Path) -> None:
@@ -289,6 +332,9 @@ def _row(
     observed_at: str = "",
     reference: str = "spotify-playlist:dark-metal-editorial",
     signals: str = "playlist_placement",
+    track_artist: str = "",
+    track_title: str = "",
+    track_isrc: str = "",
 ) -> dict[str, str]:
     return {
         "id": id,
@@ -299,4 +345,7 @@ def _row(
         "observed_at": observed_at,
         "reference": reference,
         "signals": signals,
+        "track_artist": track_artist,
+        "track_title": track_title,
+        "track_isrc": track_isrc,
     }

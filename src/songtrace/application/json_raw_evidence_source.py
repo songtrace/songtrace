@@ -11,6 +11,7 @@ from uuid import UUID
 
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+from songtrace.domain.track import TrackIdentity
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +63,7 @@ def _parse_record(item: object, index: int) -> RawEvidenceRecord:
         occurred_at=_parse_datetime(occurred_at, "occurred_at", index),
         reference=_parse_optional_string(record.get("reference"), "reference", index),
         signals=_parse_signals(signals, index),
+        track=_parse_optional_track(record, index),
     )
 
 
@@ -97,6 +99,42 @@ def _parse_optional_string(value: object, field_name: str, index: int) -> str | 
         return None
 
     return _parse_string(value, field_name, index)
+
+
+def _parse_optional_track(record: dict[str, object], index: int) -> TrackIdentity | None:
+    artist = record.get("track_artist")
+    title = record.get("track_title")
+    isrc = record.get("track_isrc")
+
+    if artist is None and title is None and isrc is None:
+        return None
+
+    return TrackIdentity(
+        artist=_parse_required_track_string(artist, "track_artist", index),
+        title=_parse_required_track_string(title, "track_title", index),
+        isrc=_parse_optional_track_string(isrc, "track_isrc", index),
+    )
+
+
+def _parse_required_track_string(value: object, field_name: str, index: int) -> str:
+    text = _parse_string(value, field_name, index)
+    if not text.strip():
+        raise ValueError(
+            f"Evidence JSON item at index {index} field '{field_name}' must not be blank"
+        )
+    return text
+
+
+def _parse_optional_track_string(value: object, field_name: str, index: int) -> str | None:
+    if value is None:
+        return None
+
+    text = _parse_string(value, field_name, index)
+    if not text.strip():
+        raise ValueError(
+            f"Evidence JSON item at index {index} field '{field_name}' must not be blank"
+        )
+    return text
 
 
 def _parse_evidence_kind(value: object, index: int) -> EvidenceKind:

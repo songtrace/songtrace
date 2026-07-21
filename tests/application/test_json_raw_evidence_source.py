@@ -112,6 +112,44 @@ def test_parses_optional_timezone_aware_observed_at(tmp_path: Path) -> None:
     assert records[0].observed_at == datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
 
 
+def test_parses_optional_track_identity(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    record = _record()
+    record["track_artist"] = "Warrel Dane"
+    record["track_title"] = "Everything Is Fading"
+    record["track_isrc"] = "USABC0800001"
+    _write_json(path, [record])
+
+    records = JsonRawEvidenceSource(path).load()
+
+    assert records[0].track is not None
+    assert records[0].track.artist == "Warrel Dane"
+    assert records[0].track.title == "Everything Is Fading"
+    assert records[0].track.isrc == "USABC0800001"
+
+
+def test_missing_track_identity_remains_valid(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, [_record()])
+
+    records = JsonRawEvidenceSource(path).load()
+
+    assert records[0].track is None
+
+
+def test_blank_track_identity_field_fails_when_track_identity_is_supplied(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "evidence.json"
+    record = _record()
+    record["track_artist"] = " "
+    record["track_title"] = "Everything Is Fading"
+    _write_json(path, [record])
+
+    with pytest.raises(ValueError, match="field 'track_artist' must not be blank"):
+        JsonRawEvidenceSource(path).load()
+
+
 def test_file_not_found_fails_clearly(tmp_path: Path) -> None:
     path = tmp_path / "missing.json"
 

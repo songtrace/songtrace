@@ -100,8 +100,13 @@ Generic raw evidence files may include:
 
 - `observed_at`
 - `reference`
+- `track_artist`
+- `track_title`
+- `track_isrc`
 
 `occurred_at` and `observed_at`, when supplied, must be timezone-aware ISO datetimes.
+
+If track identity is supplied, `track_artist` and `track_title` are required and must not be blank. `track_isrc` is optional. SongTrace currently stores this identity for traceability and future correlation; it does not yet perform track matching, fuzzy matching, ISRC validation, or investigation filtering.
 
 ## Smoke-test workflow
 

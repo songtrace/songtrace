@@ -12,6 +12,7 @@ from zipfile import BadZipFile, ZipFile
 
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+from songtrace.domain.track import TrackIdentity
 
 _REQUIRED_FIELDS = frozenset(
     {
@@ -150,6 +151,7 @@ def _parse_row(row: dict[str, str], row_number: int) -> RawEvidenceRecord:
     observed_at = _optional(row, "observed_at")
     reference = _optional(row, "reference")
     signals = row.get("signals") or ""
+    track = _parse_optional_track(row, row_number)
 
     return RawEvidenceRecord(
         id=_parse_uuid(id_value, "id", row_number),
@@ -160,6 +162,7 @@ def _parse_row(row: dict[str, str], row_number: int) -> RawEvidenceRecord:
         occurred_at=_parse_datetime(occurred_at, "occurred_at", row_number),
         reference=reference,
         signals=_parse_signals(signals, row_number),
+        track=track,
     )
 
 
@@ -197,6 +200,28 @@ def _parse_evidence_kind(value: str, row_number: int) -> EvidenceKind:
         raise ValueError(
             f"Evidence XLSX row {row_number} field 'kind' has invalid EvidenceKind: {value}"
         ) from error
+
+
+def _parse_optional_track(row: dict[str, str], row_number: int) -> TrackIdentity | None:
+    artist = _optional(row, "track_artist")
+    title = _optional(row, "track_title")
+    isrc = _optional(row, "track_isrc")
+
+    if artist is None and title is None and isrc is None:
+        return None
+
+    if artist is None:
+        raise ValueError(
+            f"Evidence XLSX row {row_number} field 'track_artist' is required "
+            "when track identity is supplied"
+        )
+    if title is None:
+        raise ValueError(
+            f"Evidence XLSX row {row_number} field 'track_title' is required "
+            "when track identity is supplied"
+        )
+
+    return TrackIdentity(artist=artist, title=title, isrc=isrc)
 
 
 def _parse_signals(value: str, row_number: int) -> tuple[EvidenceSignal, ...]:

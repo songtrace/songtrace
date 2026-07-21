@@ -11,6 +11,7 @@ from uuid import UUID
 
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+from songtrace.domain.track import TrackIdentity
 
 _REQUIRED_FIELDS = frozenset(
     {
@@ -66,6 +67,7 @@ def _parse_row(row: dict[str | None, str | None], line_number: int) -> RawEviden
     observed_at = _optional(row, "observed_at")
     reference = _optional(row, "reference")
     signals = row.get("signals") or ""
+    track = _parse_optional_track(row, line_number)
 
     return RawEvidenceRecord(
         id=_parse_uuid(id_value, "id", line_number),
@@ -76,6 +78,7 @@ def _parse_row(row: dict[str | None, str | None], line_number: int) -> RawEviden
         occurred_at=_parse_datetime(occurred_at, "occurred_at", line_number),
         reference=reference,
         signals=_parse_signals(signals, line_number),
+        track=track,
     )
 
 
@@ -104,6 +107,30 @@ def _parse_uuid(value: str, field_name: str, line_number: int) -> UUID:
         raise ValueError(
             f"Evidence CSV row {line_number} field '{field_name}' must be a valid UUID"
         ) from error
+
+
+def _parse_optional_track(
+    row: dict[str | None, str | None], line_number: int
+) -> TrackIdentity | None:
+    artist = _optional(row, "track_artist")
+    title = _optional(row, "track_title")
+    isrc = _optional(row, "track_isrc")
+
+    if artist is None and title is None and isrc is None:
+        return None
+
+    if artist is None:
+        raise ValueError(
+            f"Evidence CSV row {line_number} field 'track_artist' is required "
+            "when track identity is supplied"
+        )
+    if title is None:
+        raise ValueError(
+            f"Evidence CSV row {line_number} field 'track_title' is required "
+            "when track identity is supplied"
+        )
+
+    return TrackIdentity(artist=artist, title=title, isrc=isrc)
 
 
 def _parse_evidence_kind(value: str, line_number: int) -> EvidenceKind:

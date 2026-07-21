@@ -6,6 +6,7 @@ from enum import StrEnum
 from uuid import UUID, uuid4
 
 from songtrace.domain.evidence_source import EvidenceSource
+from songtrace.domain.track import TrackIdentity
 
 
 class EvidenceKind(StrEnum):
@@ -44,6 +45,7 @@ class Evidence:
     occurred_at: datetime | None = None
     reference: str | None = None
     signals: tuple[EvidenceSignal, ...] = ()
+    track: TrackIdentity | None = None
     id: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:

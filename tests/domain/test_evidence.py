@@ -8,6 +8,7 @@ import pytest
 
 from songtrace.domain.evidence import Evidence, EvidenceKind, EvidenceSignal
 from songtrace.domain.evidence_source import EvidenceSource
+from songtrace.domain.track import TrackIdentity
 
 
 def test_creates_evidence() -> None:
@@ -56,6 +57,35 @@ def test_defaults_to_no_structured_signals() -> None:
     )
 
     assert evidence.signals == ()
+
+
+def test_accepts_optional_track_identity() -> None:
+    track = TrackIdentity(
+        artist="Warrel Dane",
+        title="Everything Is Fading",
+        isrc="USABC0800001",
+    )
+
+    evidence = Evidence(
+        source=EvidenceSource("spotify"),
+        kind=EvidenceKind.PLAYLIST_ACTIVITY,
+        summary="The track was added to a playlist.",
+        observed_at=datetime.now(UTC),
+        track=track,
+    )
+
+    assert evidence.track == track
+
+
+def test_defaults_to_no_track_identity() -> None:
+    evidence = Evidence(
+        source=EvidenceSource("spotify"),
+        kind=EvidenceKind.PLAYLIST_ACTIVITY,
+        summary="The track was added to a playlist.",
+        observed_at=datetime.now(UTC),
+    )
+
+    assert evidence.track is None
 
 
 @pytest.mark.parametrize(

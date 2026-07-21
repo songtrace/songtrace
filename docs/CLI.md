@@ -188,7 +188,7 @@ The JSON payload includes:
 
 ## Supported local evidence formats
 
-The CLI currently selects the raw evidence source by file extension:
+The generic `validate-evidence` and `investigate-evidence` commands select the raw evidence source by file extension:
 
 | Extension | Source |
 | --- | --- |

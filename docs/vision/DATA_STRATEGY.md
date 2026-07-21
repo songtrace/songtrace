@@ -185,6 +185,83 @@ SongTrace should support multiple ingestion mechanisms over time, including:
 
 The reasoning engine must remain completely unaware of how evidence entered the system. Whether evidence originated from an OAuth API, a CSV export, a royalty statement, or a manual upload, observation extraction and investigation rules should operate only on normalized domain evidence.
 
+## Authentication and Secret Management
+
+Future API-backed Evidence Connectors will need authentication and secret handling, but those concerns must remain outside the domain reasoning model.
+
+Authentication proves that SongTrace is allowed to access a source. It does not make the resulting evidence automatically trustworthy, complete, current, or legally reusable. Evidence still needs normalization, validation, provenance, freshness context, and confidence-aware reasoning.
+
+### Authentication methods
+
+SongTrace should expect multiple authorization patterns over time:
+
+| Method | Expected use | Strategy |
+| --- | --- | --- |
+| OAuth | User-authorized access to artist tools, platforms, distributors, analytics providers, and marketing systems. | Use delegated access where users explicitly connect accounts they are authorized to use. Keep tokens outside domain entities and evidence records. |
+| API keys | Provider, workspace, or organization-level integrations. | Store keys only in approved secret storage. Do not place keys in configuration files, examples, fixtures, tests, logs, or domain models. |
+| File access | CSV, XLSX, PDF, royalty statements, exports, and manual uploads. | Treat possession of a file as an ingestion permission question, not a reason to commit the file or expose private data. Preserve source provenance. |
+| Internal system access | Label, publisher, management, accounting, CRM, or proprietary analytics systems. | Require explicit organization authorization and separate integration credentials from normalized evidence. |
+| No authentication | Public metadata or manually provided non-sensitive data. | Still evaluate licensing, freshness, provenance, and quality before using evidence in conclusions. |
+
+### Secret-management principles
+
+Secrets include OAuth tokens, refresh tokens, API keys, client secrets, service credentials, private exports, royalty statements, and any file containing sensitive business, financial, or personal data.
+
+SongTrace should follow these principles:
+
+- never store real secrets in the repository
+- never include real credentials in tests, examples, fixtures, screenshots, issue bodies, or documentation
+- never embed secrets in domain entities such as `Evidence`, `Observation`, `Conclusion`, or `Confidence`
+- never require the reasoning engine to know how a connector authenticated
+- keep provider-specific credentials in infrastructure or connector boundaries
+- redact secrets from logs, validation reports, error messages, and traces
+- prefer short-lived or revocable credentials when providers support them
+- support credential rotation and revocation before production API connectors are introduced
+- preserve enough provenance to know which authorized source produced evidence without exposing credentials
+
+### Local development and private fixtures
+
+Local development may use private exports, statements, API credentials, or sandbox accounts to validate connector behavior. Those files and secrets must remain local unless they are explicitly anonymized, licensed for inclusion, and reviewed for privacy.
+
+Private local fixtures should be used to validate architecture questions such as parsing, normalization, reconciliation, deterministic ordering, provenance preservation, and confidence behavior. They should not drive premature provider-specific abstractions.
+
+Recommended local practices include:
+
+- keep private files outside the repository or in ignored local paths
+- use environment variables or local secret stores for credentials
+- use fake credentials in tests
+- use synthetic fixtures for committed automated tests
+- document private fixture assumptions without exposing private content
+
+### CI and tests
+
+Automated tests should not depend on real provider credentials, live accounts, paid subscriptions, private exports, or network access.
+
+Tests should use:
+
+- synthetic raw records
+- fake tokens or placeholder credential values
+- local fixture files that are safe to commit
+- deterministic clocks and IDs
+- mocked or local-only connector boundaries when API-backed connectors are eventually introduced
+
+CI should fail if required tests need unavailable credentials. Provider integration tests that require live credentials should be separate, opt-in, clearly labeled, and excluded from the default validation path.
+
+### Production expectations
+
+Before production API-backed connectors are introduced, SongTrace should define operational policies for:
+
+- encrypted secret storage
+- least-privilege credential scopes
+- token refresh and revocation
+- credential rotation
+- audit logging for source connections and imports
+- data retention and deletion
+- incident response for credential exposure
+- customer offboarding and source disconnection
+
+These policies should be introduced when they solve a concrete integration problem. SongTrace should not add a secrets framework before an actual connector requires it.
+
 ## Provider-Neutral Architecture
 
 SongTrace should preserve a provider-neutral import boundary:

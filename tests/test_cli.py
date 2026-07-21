@@ -220,6 +220,7 @@ def test_summarize_ascap_work_json_output_is_private_safe(tmp_path: Path) -> Non
         "territory_count": 0,
     }
     assert "breakdowns" not in payload
+    assert "source_attribution" not in payload
     assert "SECRET_WORK_TITLE" not in result.stdout
     assert "SECRET_WORK_ID" not in result.stdout
     assert "123.45" not in result.stdout
@@ -325,6 +326,110 @@ def test_summarize_ascap_work_json_breakdowns_are_deterministic(tmp_path: Path) 
     assert "SECRET_WORK_ID" not in result.stdout
     assert "SECRET_WORK_TITLE" not in result.stdout
     assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_text_attribution_gaps_are_opt_in(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-work",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-attribution-gaps",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Source attribution" in result.stdout
+    assert "Status: royalty_activity_found_upstream_source_unknown" in result.stdout
+    assert "- campaign_activity_logs" in result.stdout
+    assert "- distributor_usage_source_evidence" in result.stdout
+    assert "- platform_source_breakdowns" in result.stdout
+    assert "- playlist_placement_evidence" in result.stdout
+    assert "- social_post_evidence" in result.stdout
+    assert "- video_traffic_source_evidence" in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_default_text_omits_attribution_gaps(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(app, ["summarize-ascap-work", str(path), "--work-id", "SECRET_WORK_ID"])
+
+    assert result.exit_code == 0
+    assert "Source attribution" not in result.stdout
+    assert "platform_source_breakdowns" not in result.stdout
+
+
+def test_summarize_ascap_work_json_attribution_gaps_are_deterministic(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-work",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-attribution-gaps",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["source_attribution"] == {
+        "missing_upstream_evidence": [
+            "campaign_activity_logs",
+            "distributor_usage_source_evidence",
+            "platform_source_breakdowns",
+            "playlist_placement_evidence",
+            "social_post_evidence",
+            "video_traffic_source_evidence",
+        ],
+        "status": "royalty_activity_found_upstream_source_unknown",
+    }
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_attribution_gaps_report_no_match_status(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-work",
+            str(path),
+            "--work-id",
+            "MISSING_WORK",
+            "--include-attribution-gaps",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["source_attribution"] == {
+        "missing_upstream_evidence": ["matching_royalty_activity"],
+        "status": "no_matching_royalty_activity",
+    }
 
 
 def test_summarize_ascap_work_accepts_directory_input(tmp_path: Path) -> None:

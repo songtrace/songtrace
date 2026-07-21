@@ -10,6 +10,7 @@ from songtrace.providers import (
     AscapWorkSummary,
     SpotifyApiAccessStatus,
     SpotifyEnvironmentStatus,
+    SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
 )
@@ -130,6 +131,47 @@ def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None
         "failure_reason": status.failure_reason,
         "missing_variables": list(status.environment.missing_variables),
         "token_request_attempted": status.token_request_attempted,
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_playlist_discovery_text_result(
+    result: SpotifyPlaylistDiscoveryResult,
+) -> None:
+    console.print("[bold]SongTrace Spotify Playlist Discovery[/bold]")
+    console.print()
+    console.print(f"Query: {result.query}")
+    console.print(f"Spotify track ID: {result.spotify_track_id}")
+    console.print(f"Candidate playlists: {len(result.candidates)}")
+    console.print(f"Verified placements: {len(result.verified_memberships)}")
+    if result.memberships:
+        console.print("Playlists:")
+        for membership in result.memberships:
+            label = membership.playlist_name or membership.spotify_playlist_id
+            contains = "yes" if membership.contains_track else "no"
+            console.print(
+                f"- {label} ({membership.spotify_playlist_id}): contains track {contains}"
+            )
+
+
+def print_spotify_playlist_discovery_json_result(
+    result: SpotifyPlaylistDiscoveryResult,
+) -> None:
+    payload = {
+        "candidate_count": len(result.candidates),
+        "memberships": [
+            {
+                "contains_track": membership.contains_track,
+                "matched_track_ids": list(membership.matched_track_ids),
+                "playlist_name": membership.playlist_name,
+                "spotify_playlist_id": membership.spotify_playlist_id,
+                "spotify_track_id": membership.spotify_track_id,
+            }
+            for membership in result.memberships
+        ],
+        "query": result.query,
+        "spotify_track_id": result.spotify_track_id,
+        "verified_placement_count": len(result.verified_memberships),
     }
     print(json.dumps(payload, sort_keys=True))
 

@@ -31,6 +31,8 @@ from songtrace.presentation.cli.output import (
     print_spotify_api_access_text_status,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
+    print_spotify_playlist_discovery_json_result,
+    print_spotify_playlist_discovery_text_result,
     print_spotify_playlist_membership_json_result,
     print_spotify_playlist_membership_text_result,
     print_spotify_track_metadata_json_result,
@@ -39,6 +41,7 @@ from songtrace.presentation.cli.output import (
     print_validation_text_result,
 )
 from songtrace.providers import (
+    discover_spotify_playlist_track_memberships,
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
@@ -163,6 +166,156 @@ def export_spotify_playlist_placement_command(
             track=track,
         )
         output = spotify_playlist_placement_raw_records_to_json_text((record,))
+        if output_file is None:
+            print(output, end="")
+            return
+        output_file.write_text(output, encoding="utf-8")
+    except (OSError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+
+@app.command("spotify-playlist-search")
+def spotify_playlist_search_command(
+    query: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist search query."),
+    ],
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to verify in candidate playlists."),
+    ],
+    limit: Annotated[
+        int,
+        typer.Option(
+            "--limit",
+            min=1,
+            max=50,
+            help="Maximum Spotify playlist search results to verify.",
+        ),
+    ] = 20,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Search Spotify playlists and verify current track membership."""
+
+    output_format = parse_output_format(output)
+    try:
+        result = discover_spotify_playlist_track_memberships(
+            query,
+            spotify_track_id,
+            limit=limit,
+        )
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_playlist_discovery_text_result(result)
+        case "json":
+            print_spotify_playlist_discovery_json_result(result)
+
+
+@app.command("export-spotify-playlist-search-placements")
+def export_spotify_playlist_search_placements_command(
+    query: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist search query."),
+    ],
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to verify in candidate playlists."),
+    ],
+    occurred_at: Annotated[
+        str,
+        typer.Option(
+            "--occurred-at",
+            help="Deterministic timezone-aware ISO timestamp for the placement evidence.",
+        ),
+    ],
+    observed_at: Annotated[
+        str | None,
+        typer.Option(
+            "--observed-at",
+            help="Optional deterministic timezone-aware ISO observation timestamp.",
+        ),
+    ] = None,
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-file",
+            help="Optional JSON file path to write. Prints JSON to stdout when omitted.",
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option(
+            "--limit",
+            min=1,
+            max=50,
+            help="Maximum Spotify playlist search results to verify.",
+        ),
+    ] = 20,
+    track_artist: Annotated[
+        str | None,
+        typer.Option(
+            "--track-artist",
+            help="Optional provider-neutral track artist for exported evidence.",
+        ),
+    ] = None,
+    track_title: Annotated[
+        str | None,
+        typer.Option(
+            "--track-title",
+            help="Optional provider-neutral track title for exported evidence.",
+        ),
+    ] = None,
+    track_isrc: Annotated[
+        str | None,
+        typer.Option(
+            "--track-isrc",
+            help="Optional provider-neutral track ISRC for exported evidence.",
+        ),
+    ] = None,
+) -> None:
+    """Export verified Spotify playlist-search placements as raw evidence."""
+
+    parsed_occurred_at = parse_timezone_aware_datetime(
+        occurred_at,
+        field_name="occurred_at",
+        param_hint="--occurred-at",
+    )
+    parsed_observed_at = None
+    if observed_at is not None:
+        parsed_observed_at = parse_timezone_aware_datetime(
+            observed_at,
+            field_name="observed_at",
+            param_hint="--observed-at",
+        )
+    track = _parse_optional_export_track_identity(track_artist, track_title, track_isrc)
+
+    try:
+        result = discover_spotify_playlist_track_memberships(
+            query,
+            spotify_track_id,
+            limit=limit,
+        )
+        records = tuple(
+            spotify_playlist_membership_to_raw_record(
+                membership,
+                occurred_at=parsed_occurred_at,
+                observed_at=parsed_observed_at,
+                track=track,
+            )
+            for membership in result.verified_memberships
+        )
+        output = spotify_playlist_placement_raw_records_to_json_text(records)
         if output_file is None:
             print(output, end="")
             return

@@ -6,6 +6,37 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `spotify-playlist-search`
+
+Search Spotify public playlists by query and verify whether a track is currently present in the returned candidate playlists.
+
+```sh
+uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N --limit 20
+```
+
+This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, then verifies current membership for each candidate in deterministic search-result order.
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N --output json
+```
+
+### `export-spotify-playlist-search-placements`
+
+Search candidate Spotify playlists and export verified current placements as raw playlist-placement evidence.
+
+```sh
+uv run songtrace export-spotify-playlist-search-placements "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N \
+  --occurred-at 2026-07-21T12:00:00+00:00 \
+  --track-artist "Warrel Dane" \
+  --track-title "Everything Is Fading" \
+  --track-isrc "GBDHC2120401" \
+  --output-file .songtrace-private/everything-is-fading/spotify-playlist-search-placements.json
+```
+
+The command writes one `playlist_activity` / `playlist_placement` raw evidence record per verified current placement. It writes an empty JSON array when no verified placements are found. It does not infer historical playlist placement, playlist add dates, causal impact, or exhaustive source attribution.
+
 ### `export-spotify-playlist-placement`
 
 Check current Spotify playlist membership and export a positive match as raw playlist-placement evidence.

@@ -286,29 +286,65 @@ Examples include:
 
 Summaries are useful for human explanation, but product logic should rely on structured fields whenever possible.
 
-## Obtainable, Derived, and Unavailable Evidence
+## Evidence Availability Classification
 
-A mature data strategy should classify desired evidence into three groups.
+A mature data strategy should classify desired evidence by how SongTrace can obtain or reason from it. This prevents the product from implying access to metrics that may be restricted, commercially gated, derivable only from other evidence, or unavailable.
 
-### Obtainable evidence
+### Availability taxonomy
 
-Evidence that can be acquired directly from a public API, user upload, distributor export, commercial provider, or internal source.
+| Classification | Meaning | Product implication |
+| --- | --- | --- |
+| Obtainable | Evidence can be acquired directly from an authorized source such as a public API, user import, distributor export, commercial provider, or internal system. | SongTrace may ingest it when a suitable source is available and licensed. |
+| Derived | Evidence can be calculated from other evidence already available to SongTrace. | SongTrace should preserve traceability from derived evidence back to its input evidence. |
+| Unavailable | Evidence cannot currently be acquired reliably, legally, or with enough quality for product use. | SongTrace should not present conclusions that depend on it. |
+| Unknown | Availability is not yet validated. | SongTrace should treat the evidence as an assumption to research, not as a product capability. |
 
-Examples may include playlist placements, streaming counts, save counts, geography, chart positions, campaign spend, and social activity.
+### Initial availability classification
 
-### Derived evidence
+| Evidence | Classification | Notes |
+| --- | --- | --- |
+| Artist identity and canonical identifiers | Obtainable | Usually available from public metadata, user imports, or commercial providers, though identity resolution still requires care. |
+| Release identity, track identity, and release dates | Obtainable | Generally available through metadata sources, distributors, user imports, and commercial providers. |
+| Playlist placement evidence | Obtainable | Current product behavior already supports this as imported evidence; historical completeness and playlist context may require better sources. |
+| Stream count or stream-growth evidence | Obtainable | Available through user-owned exports, distributor/platform analytics, or commercial providers; public access may be limited. |
+| Save count or save-growth evidence | Obtainable | Available through some platform analytics or imports, but not guaranteed through public APIs. |
+| Playlist type, curator, size, and position | Obtainable | Often available through playlist metadata sources or commercial providers, but quality and historical coverage vary. |
+| Listener, follower, fan, or subscriber growth | Obtainable | Usually source-dependent and may require account access, user exports, or licensed provider data. |
+| Territory-level consumption and engagement | Obtainable | Often available from authorized analytics exports or commercial providers; granularity may be limited by privacy thresholds. |
+| Campaign timing, spend, and channel evidence | Obtainable | Available when users provide authorized advertising, marketing, or campaign records. |
+| Chart positions and movement | Obtainable | Available from chart publishers or providers, subject to methodology and licensing. |
+| Revenue, royalty, and sales evidence | Obtainable | Available from authorized distributor, royalty, accounting, or user-imported records; sensitive and likely permissioned. |
+| Growth rates | Derived | Requires comparable measurements across a defined time window. |
+| Conversion ratios | Derived | Requires numerator and denominator evidence, such as saves per stream or listeners per campaign exposure. |
+| Campaign efficiency | Derived | Requires campaign spend, timing, channel context, and outcome evidence such as streams, saves, follows, revenue, or territory movement. |
+| Catalog reactivation signals | Derived | Requires historical baseline activity plus renewed current activity for older tracks or releases. |
+| Territory acceleration | Derived | Requires territory-level historical and current performance evidence over comparable windows. |
+| Anomaly scores | Derived | Requires baseline history, current measurements, and a defined anomaly method. |
+| Short-form content usage and trend evidence | Unknown | Potentially valuable, but access, attribution, licensing, and historical depth need validation by platform and provider. |
+| Comparable artist, track, campaign, or market context | Unknown | Requires careful normalization and sufficient data rights before it can support trustworthy comparisons. |
+| Listener intent beyond observable platform behavior | Unavailable | SongTrace can observe proxies such as saves, repeats, follows, or purchases, but should not claim direct knowledge of listener motivation. |
+| Provider-internal recommendation or ranking algorithms | Unavailable | Platforms generally do not expose the internal reasons their algorithms recommend music. SongTrace should reason from observable outputs, not hidden algorithmic state. |
+| Causal certainty for performance changes | Unavailable | SongTrace can support hypotheses and confidence, but should not claim proof of causation from correlated evidence. |
 
-Evidence that can be calculated from other evidence.
+### Derived evidence requirements
 
-Examples may include growth rates, conversion ratios, anomaly scores, campaign efficiency, catalog reactivation signals, and territory acceleration.
+Derived evidence should be treated as a first-class reasoning input only when its source evidence and calculation method are explicit.
 
-Derived evidence should remain traceable to its source evidence.
+| Derived evidence | Required inputs | Traceability requirement |
+| --- | --- | --- |
+| Growth rate | Metric value at two or more comparable timestamps | Reference all input evidence records and the comparison window. |
+| Conversion ratio | Related numerator and denominator metrics from compatible windows | Reference both metric sources and document denominator limitations. |
+| Campaign efficiency | Campaign cost or effort plus outcome metrics in an attribution window | Reference campaign evidence, outcome evidence, and the attribution window. |
+| Territory acceleration | Territory-level current and baseline activity | Reference the baseline evidence, current evidence, territory definition, and comparison period. |
+| Catalog reactivation signal | Historical baseline plus renewed activity for an older release or track | Reference catalog identity, baseline period, current period, and triggering evidence. |
 
-### Unavailable evidence
+### Availability principles
 
-Evidence that cannot currently be acquired reliably or legally.
-
-SongTrace should explicitly document unavailable evidence so the product does not imply certainty where the data does not exist.
+- Obtainable evidence still requires validation of source permission, licensing, quality, and freshness.
+- Derived evidence must never break the traceability chain back to original evidence.
+- Unknown evidence should be tracked as a research question rather than silently assumed.
+- Unavailable evidence should be documented so product copy, conclusions, and recommendations do not overclaim.
+- If a conclusion depends on unavailable or unknown evidence, SongTrace should either avoid producing it or clearly identify the missing evidence.
 
 ## Future Provider Integrations
 

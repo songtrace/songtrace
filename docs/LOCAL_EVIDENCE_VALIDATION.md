@@ -302,6 +302,26 @@ id,source_name,summary,occurred_at,observed_at,reference
 
 The source produces `playlist_activity` evidence with the `playlist_placement` signal. It does not enrich playlist metadata, search platforms, call APIs, or claim that a playlist caused engagement by itself. It only imports known playlist placement evidence that can later be evaluated alongside stream, save, royalty, and other evidence.
 
+Validate this source explicitly with:
+
+```sh
+uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-placements.csv
+```
+
+For deterministic local comparisons:
+
+```sh
+uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-placements.csv \
+  --output json \
+  --source-name local_playlist_fixture \
+  --batch-id 00000000-0000-0000-0000-000000000901 \
+  --imported-at 2026-07-21T12:00:00+00:00
+```
+
+This validation command prints import batch metadata, raw/evidence counts, and evidence IDs only. It does not print playlist names, references, summaries, file paths, observations, conclusions, or recommendations.
+
+The generic `validate-evidence` and `investigate-evidence` commands do not auto-detect playlist placement CSVs by `.csv` extension. Use `validate-playlist-placement-csv` for this specialized local shape.
+
 ## API-backed sources are later
 
 Local file validation should happen before live API integrations.

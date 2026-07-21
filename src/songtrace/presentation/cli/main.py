@@ -16,6 +16,7 @@ from songtrace.application import (
     InvestigationService,
     JsonRawEvidenceSource,
     ObservationExtractor,
+    PlaylistPlacementCsvRawEvidenceSource,
     RawEvidenceRecord,
     SimpleInvestigator,
     XlsxRawEvidenceSource,
@@ -314,6 +315,66 @@ def validate_evidence(
             _print_validation_json_result(raw_records, batch)
 
 
+@app.command("validate-playlist-placement-csv")
+def validate_playlist_placement_csv(
+    playlist_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to a provider-neutral playlist placement CSV file.",
+        ),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+    source_name: Annotated[
+        str,
+        typer.Option(
+            "--source-name",
+            help="Provider-neutral source name for import batch metadata.",
+        ),
+    ] = "local_playlist_placement_file",
+    batch_id: Annotated[
+        str | None,
+        typer.Option(
+            "--batch-id",
+            help="Optional deterministic import batch UUID.",
+        ),
+    ] = None,
+    imported_at: Annotated[
+        str | None,
+        typer.Option(
+            "--imported-at",
+            help="Optional deterministic timezone-aware ISO import timestamp.",
+        ),
+    ] = None,
+) -> None:
+    """Validate a local playlist placement CSV through the import boundary."""
+
+    output_format = _parse_output_format(output)
+    parsed_batch_id = _parse_optional_batch_id(batch_id)
+    parsed_imported_at = _parse_optional_imported_at(imported_at)
+    raw_records, batch = _load_and_import_playlist_placement_batch(
+        playlist_file,
+        source_name=source_name,
+        batch_id=parsed_batch_id,
+        imported_at=parsed_imported_at,
+    )
+
+    match output_format:
+        case "text":
+            _print_validation_text_result(raw_records, batch)
+        case "json":
+            _print_validation_json_result(raw_records, batch)
+
+
 def _load_and_import_evidence(
     evidence_file: Path,
 ) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
@@ -364,6 +425,30 @@ def _load_and_import_batch(
         _print_import_error(error)
         raise typer.Exit(1) from error
     except ValueError as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    return raw_records, batch
+
+
+def _load_and_import_playlist_placement_batch(
+    playlist_file: Path,
+    *,
+    source_name: str,
+    batch_id: UUID | None,
+    imported_at: datetime | None,
+) -> tuple[tuple[RawEvidenceRecord, ...], EvidenceImportBatch]:
+    try:
+        raw_records = PlaylistPlacementCsvRawEvidenceSource(playlist_file).load()
+        importer = EvidenceImporter(
+            clock=(lambda: imported_at) if imported_at is not None else None,
+            batch_id_factory=(lambda: batch_id) if batch_id is not None else None,
+        )
+        batch = importer.import_batch(raw_records, source_name=source_name)
+    except EvidenceImportError as error:
+        _print_import_error(error)
+        raise typer.Exit(1) from error
+    except (FileNotFoundError, ValueError) as error:
         _print_source_error(error)
         raise typer.Exit(1) from error
 

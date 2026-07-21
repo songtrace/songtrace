@@ -92,7 +92,7 @@ Generic raw evidence files currently require:
 - `occurred_at`
 - `signals`
 
-The `signals` field must be present in generic CSV, XLSX, and JSON records. It may be blank or empty when evidence has no currently defined structured signal.
+The `signals` field must be present in generic CSV, XLSX, and JSON records. It may be blank or empty when evidence has no currently defined structured signal. See [Evidence Semantics](EVIDENCE_SEMANTICS.md) for current signal compatibility and timestamp guidance.
 
 ### Optional fields
 
@@ -225,6 +225,8 @@ They may eventually help validate whether SongTrace can:
 - verify deterministic imports through automated tests
 
 Do not implement ASCAP-specific parsing, royalty-statement reconciliation, or PDF ingestion until a dedicated ticket is created.
+
+For current provider-neutral royalty evidence semantics, see [Evidence Semantics](EVIDENCE_SEMANTICS.md).
 
 ## API-backed sources are later
 

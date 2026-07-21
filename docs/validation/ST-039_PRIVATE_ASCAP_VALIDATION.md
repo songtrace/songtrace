@@ -66,7 +66,7 @@ Provider-neutral modeling questions remain open:
 
 Do not implement an ASCAP connector yet.
 
-The next justified implementation ticket should define a small provider-neutral royalty evidence model extension only if it is needed by a concrete local normalization exercise. A good next step would be:
+The next justified implementation ticket was:
 
 ```text
 ST-040: Define provider-neutral royalty evidence signals and timestamp semantics

@@ -116,6 +116,7 @@ Additional project documentation lives in `docs/`, including:
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [CLI Reference](docs/CLI.md)
+- [Evidence Semantics](docs/EVIDENCE_SEMANTICS.md)
 - [Import Policy](docs/IMPORT_POLICY.md)
 - [Product Vision](docs/vision/PRODUCT_VISION.md)
 - [Data Strategy](docs/vision/DATA_STRATEGY.md)

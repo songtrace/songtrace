@@ -94,6 +94,17 @@ def test_blank_signals_field_loads_empty_signal_tuple(tmp_path: Path) -> None:
     assert records[0].signals == ()
 
 
+def test_parses_royalty_reported_signal(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.csv"
+    row = _row(kind="royalty_activity", signals="royalty_reported")
+    _write_csv(path, [row])
+
+    records = CsvRawEvidenceSource(path).load()
+
+    assert records[0].kind is EvidenceKind.ROYALTY_ACTIVITY
+    assert records[0].signals == (EvidenceSignal.ROYALTY_REPORTED,)
+
+
 def test_parses_timezone_aware_occurred_at(tmp_path: Path) -> None:
     path = tmp_path / "evidence.csv"
     _write_csv(path, _rows())

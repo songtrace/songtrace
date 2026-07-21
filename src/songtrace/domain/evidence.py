@@ -24,6 +24,7 @@ class EvidenceSignal(StrEnum):
     """Structured signals that make evidence machine-interpretable."""
 
     PLAYLIST_PLACEMENT = "playlist_placement"
+    ROYALTY_REPORTED = "royalty_reported"
     SAVE_GROWTH = "save_growth"
     STREAM_GROWTH = "stream_growth"
 
@@ -72,5 +73,7 @@ def _expected_kind_for_signal(signal: EvidenceSignal) -> EvidenceKind:
     match signal:
         case EvidenceSignal.PLAYLIST_PLACEMENT:
             return EvidenceKind.PLAYLIST_ACTIVITY
+        case EvidenceSignal.ROYALTY_REPORTED:
+            return EvidenceKind.ROYALTY_ACTIVITY
         case EvidenceSignal.SAVE_GROWTH | EvidenceSignal.STREAM_GROWTH:
             return EvidenceKind.AUDIENCE_ACTIVITY

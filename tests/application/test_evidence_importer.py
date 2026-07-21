@@ -8,14 +8,16 @@ from uuid import UUID
 import pytest
 
 from songtrace.application.evidence_importer import EvidenceImporter
+from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.application.raw_evidence_source import RawEvidenceSource
-from songtrace.domain.evidence import EvidenceKind, EvidenceSignal
+from songtrace.domain.evidence import Evidence, EvidenceKind, EvidenceSignal
 from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSource
 
 _OBSERVED_AT = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
 _OCCURRED_AT = datetime(2026, 7, 17, 12, 0, tzinfo=UTC)
 _FALLBACK_OBSERVED_AT = datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
+_BATCH_ID = UUID("00000000-0000-0000-0000-000000000901")
 
 
 def test_successfully_imports_raw_evidence_records() -> None:
@@ -179,6 +181,176 @@ def test_raw_evidence_record_stores_signals_as_immutable_tuple() -> None:
     signals.append(EvidenceSignal.SAVE_GROWTH)
 
     assert record.signals == (EvidenceSignal.STREAM_GROWTH,)
+
+
+def test_import_batch_returns_evidence_with_metadata() -> None:
+    records = (_playlist_record(), _stream_record())
+
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch(records, source_name="spotify")
+
+    assert isinstance(batch, EvidenceImportBatch)
+    assert batch.metadata == ImportBatchMetadata(
+        id=_BATCH_ID,
+        source_name="spotify",
+        imported_at=_FALLBACK_OBSERVED_AT,
+        record_count=2,
+    )
+    assert tuple(item.summary for item in batch.evidence) == tuple(
+        record.summary for record in records
+    )
+
+
+def test_import_batch_metadata_timestamp_is_deterministic() -> None:
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch((_playlist_record(),), source_name="spotify")
+
+    assert batch.metadata.imported_at == _FALLBACK_OBSERVED_AT
+
+
+def test_import_batch_uses_imported_at_as_fallback_observed_at() -> None:
+    record = RawEvidenceRecord(
+        source_name="spotify",
+        kind=EvidenceKind.AUDIENCE_ACTIVITY,
+        summary="Streams increased 48% after the playlist placement.",
+        occurred_at=_OCCURRED_AT,
+        signals=(EvidenceSignal.STREAM_GROWTH,),
+    )
+
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch((record,), source_name="spotify")
+
+    assert batch.evidence[0].observed_at == _FALLBACK_OBSERVED_AT
+    assert batch.metadata.imported_at == _FALLBACK_OBSERVED_AT
+
+
+def test_import_batch_preserves_supplied_observed_at() -> None:
+    record = _stream_record()
+
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch((record,), source_name="spotify")
+
+    assert batch.evidence[0].observed_at == _OBSERVED_AT
+
+
+def test_import_batch_record_count_supports_empty_imports() -> None:
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch((), source_name="spotify")
+
+    assert batch.evidence == ()
+    assert batch.metadata.record_count == 0
+
+
+def test_import_batch_metadata_is_immutable() -> None:
+    metadata = ImportBatchMetadata(
+        id=_BATCH_ID,
+        source_name="spotify",
+        imported_at=_FALLBACK_OBSERVED_AT,
+        record_count=1,
+    )
+
+    with pytest.raises(FrozenInstanceError):
+        metadata.record_count = 2  # type: ignore[misc]
+
+
+def test_import_batch_result_is_immutable() -> None:
+    batch = EvidenceImporter(
+        clock=lambda: _FALLBACK_OBSERVED_AT,
+        batch_id_factory=lambda: _BATCH_ID,
+    ).import_batch((_playlist_record(),), source_name="spotify")
+
+    with pytest.raises(FrozenInstanceError):
+        batch.evidence = ()  # type: ignore[misc]
+
+
+def test_import_batch_rejects_blank_source_name() -> None:
+    with pytest.raises(ValueError, match="source_name must not be blank"):
+        EvidenceImporter(
+            clock=lambda: _FALLBACK_OBSERVED_AT,
+            batch_id_factory=lambda: _BATCH_ID,
+        ).import_batch((_playlist_record(),), source_name="  ")
+
+
+def test_import_batch_rejects_naive_imported_at() -> None:
+    with pytest.raises(ValueError, match="imported_at must be timezone-aware"):
+        EvidenceImporter(
+            clock=lambda: datetime(2026, 7, 20, 12, 0),
+            batch_id_factory=lambda: _BATCH_ID,
+        ).import_batch((_playlist_record(),), source_name="spotify")
+
+
+def test_import_batch_metadata_rejects_negative_record_count() -> None:
+    with pytest.raises(ValueError, match="record_count must not be negative"):
+        ImportBatchMetadata(
+            id=_BATCH_ID,
+            source_name="spotify",
+            imported_at=_FALLBACK_OBSERVED_AT,
+            record_count=-1,
+        )
+
+
+def test_import_batch_result_rejects_mismatched_record_count() -> None:
+    evidence = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records(
+        (_playlist_record(),)
+    )
+    metadata = ImportBatchMetadata(
+        id=_BATCH_ID,
+        source_name="spotify",
+        imported_at=_FALLBACK_OBSERVED_AT,
+        record_count=2,
+    )
+
+    with pytest.raises(ValueError, match="metadata record_count must match evidence count"):
+        EvidenceImportBatch(metadata=metadata, evidence=evidence)
+
+
+def test_import_batch_result_stores_evidence_as_immutable_tuple() -> None:
+    evidence = list(
+        EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records((_playlist_record(),))
+    )
+    metadata = ImportBatchMetadata(
+        id=_BATCH_ID,
+        source_name="spotify",
+        imported_at=_FALLBACK_OBSERVED_AT,
+        record_count=1,
+    )
+
+    batch = EvidenceImportBatch(
+        metadata=metadata,
+        evidence=cast(tuple[Evidence, ...], evidence),
+    )
+    evidence.clear()
+
+    assert len(batch.evidence) == 1
+
+
+def test_import_batch_does_not_return_partial_data_when_record_is_invalid() -> None:
+    records = (
+        _playlist_record(),
+        RawEvidenceRecord(
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased.",
+            observed_at=datetime(2026, 7, 18, 12, 0),
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="observed_at must be timezone-aware"):
+        EvidenceImporter(
+            clock=lambda: _FALLBACK_OBSERVED_AT,
+            batch_id_factory=lambda: _BATCH_ID,
+        ).import_batch(records, source_name="spotify")
 
 
 @dataclass(frozen=True, slots=True)

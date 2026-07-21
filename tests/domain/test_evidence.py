@@ -33,6 +33,20 @@ def test_creates_evidence() -> None:
     assert evidence.signals == (EvidenceSignal.STREAM_GROWTH,)
 
 
+def test_accepts_royalty_reported_signal_for_royalty_activity() -> None:
+    evidence = Evidence(
+        source=EvidenceSource("local_statement_upload"),
+        kind=EvidenceKind.ROYALTY_ACTIVITY,
+        summary="Royalties were reported for a royalty statement period.",
+        observed_at=datetime(2026, 7, 21, 12, 0, tzinfo=UTC),
+        occurred_at=datetime(2026, 6, 30, 23, 59, tzinfo=UTC),
+        reference="royalty-statement:synthetic:2026-q2",
+        signals=(EvidenceSignal.ROYALTY_REPORTED,),
+    )
+
+    assert evidence.signals == (EvidenceSignal.ROYALTY_REPORTED,)
+
+
 def test_defaults_to_no_structured_signals() -> None:
     evidence = Evidence(
         source=EvidenceSource("spotify"),
@@ -67,6 +81,7 @@ def test_rejects_duplicate_signals(signals: tuple[EvidenceSignal, ...]) -> None:
     [
         (EvidenceKind.MEDIA_COVERAGE, (EvidenceSignal.PLAYLIST_PLACEMENT,)),
         (EvidenceKind.PLAYLIST_ACTIVITY, (EvidenceSignal.STREAM_GROWTH,)),
+        (EvidenceKind.AUDIENCE_ACTIVITY, (EvidenceSignal.ROYALTY_REPORTED,)),
         (EvidenceKind.ROYALTY_ACTIVITY, (EvidenceSignal.SAVE_GROWTH,)),
     ],
 )

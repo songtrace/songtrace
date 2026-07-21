@@ -257,6 +257,32 @@ def test_validate_evidence_does_not_require_observations_or_conclusions(tmp_path
     assert "Conclusions" not in result.stdout
 
 
+def test_validate_evidence_accepts_royalty_reported_signal(tmp_path: Path) -> None:
+    path = tmp_path / "royalty-evidence.csv"
+    _write_csv(path, [_royalty_row()])
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+
+    assert result.exit_code == 0
+    assert "Raw records: 1" in result.stdout
+    assert "Evidence: 1" in result.stdout
+    assert "00000000-0000-0000-0000-000000000901" in result.stdout
+
+
+def test_investigate_evidence_accepts_royalty_evidence_without_current_rules(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "royalty-evidence.csv"
+    _write_csv(path, [_royalty_row()])
+
+    result = runner.invoke(app, ["investigate-evidence", str(path)])
+
+    assert result.exit_code == 0
+    assert "Evidence: 1" in result.stdout
+    assert "Observations: 0" in result.stdout
+    assert "Conclusions: 0" in result.stdout
+
+
 def test_investigate_evidence_json_file(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())
@@ -565,6 +591,19 @@ def _record(
     if observed_at is not None:
         record["observed_at"] = observed_at
     return record
+
+
+def _royalty_row() -> dict[str, str]:
+    return _row(
+        id="00000000-0000-0000-0000-000000000901",
+        source_name="local_statement_upload",
+        kind="royalty_activity",
+        summary="Royalties were reported for a synthetic statement period.",
+        occurred_at="2026-06-30T23:59:00+00:00",
+        observed_at="2026-07-21T12:00:00+00:00",
+        reference="royalty-statement:synthetic:2026-q2",
+        signals="royalty_reported",
+    )
 
 
 def _row(

@@ -1,0 +1,2 @@
+id,source_name,kind,summary,occurred_at,observed_at,reference,signals
+00000000-0000-0000-0000-000000000901,local_statement_upload,royalty_activity,Royalties were reported for a synthetic statement period.,2026-06-30T23:59:00+00:00,2026-07-21T12:00:00+00:00,royalty-statement:synthetic:2026-q2,royalty_reported

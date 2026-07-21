@@ -62,6 +62,28 @@ def test_converts_enum_values(tmp_path: Path) -> None:
     assert records[1].signals == (EvidenceSignal.STREAM_GROWTH,)
 
 
+def test_converts_royalty_reported_signal(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(
+        path,
+        [
+            _record(
+                source_name="local_statement_upload",
+                kind="royalty_activity",
+                summary="Royalties were reported for a synthetic statement period.",
+                occurred_at="2026-06-30T23:59:00+00:00",
+                reference="royalty-statement:synthetic:2026-q2",
+                signals=["royalty_reported"],
+            )
+        ],
+    )
+
+    records = JsonRawEvidenceSource(path).load()
+
+    assert records[0].kind is EvidenceKind.ROYALTY_ACTIVITY
+    assert records[0].signals == (EvidenceSignal.ROYALTY_REPORTED,)
+
+
 def test_parses_timezone_aware_occurred_at(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _records())

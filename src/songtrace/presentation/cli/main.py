@@ -8,6 +8,7 @@ from songtrace import __version__
 from songtrace.application import (
     CsvRawEvidenceSource,
     EvidenceImporter,
+    EvidenceImportError,
     InvestigationService,
     JsonRawEvidenceSource,
     ObservationExtractor,
@@ -23,6 +24,7 @@ app = typer.Typer(
 )
 
 console = Console()
+error_console = Console(stderr=True)
 investigation_service = InvestigationService()
 
 
@@ -81,8 +83,16 @@ def investigate_evidence(
 ) -> None:
     """Run the deterministic investigation pipeline for a raw evidence file."""
 
-    raw_records = _load_raw_records(evidence_file)
-    evidence = EvidenceImporter().import_records(raw_records)
+    try:
+        raw_records = _load_raw_records(evidence_file)
+        evidence = EvidenceImporter().import_records(raw_records)
+    except EvidenceImportError as error:
+        _print_import_error(error)
+        raise typer.Exit(1) from error
+    except ValueError as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 
@@ -97,6 +107,26 @@ def investigate_evidence(
         console.print("[bold]Conclusions[/bold]")
         for conclusion in result.conclusions:
             console.print(f"- {conclusion.statement}")
+
+
+def _print_import_error(error: EvidenceImportError) -> None:
+    report = error.report
+
+    error_console.print("[bold red]Evidence import failed.[/bold red]")
+    error_console.print(f"Rejected record index: {report.rejected_record_index}")
+    error_console.print(f"Accepted record count: {report.accepted_record_count}")
+    if report.rejected_source_name is not None:
+        error_console.print(f"Source: {report.rejected_source_name}")
+    if report.rejected_reference is not None:
+        error_console.print(f"Reference: {report.rejected_reference}")
+    if report.rejected_record_id is not None:
+        error_console.print(f"Record ID: {report.rejected_record_id}")
+    error_console.print(f"Error: {report.error_message}")
+
+
+def _print_source_error(error: ValueError) -> None:
+    error_console.print("[bold red]Evidence source failed.[/bold red]")
+    error_console.print(f"Error: {error}")
 
 
 def _load_raw_records(path: Path) -> tuple[RawEvidenceRecord, ...]:

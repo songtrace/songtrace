@@ -113,6 +113,53 @@ def test_investigate_evidence_reports_no_conclusion_path(tmp_path: Path) -> None
     )
 
 
+def test_investigate_evidence_reports_import_validation_failure(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(
+        path,
+        [
+            _record(
+                id="00000000-0000-0000-0000-000000000201",
+                signals=["playlist_placement"],
+            ),
+            _record(
+                id="00000000-0000-0000-0000-000000000202",
+                source_name="spotify",
+                kind="playlist_activity",
+                summary="Stream growth was mislabeled as playlist activity.",
+                reference="spotify-analytics:bad-row",
+                signals=["stream_growth"],
+            ),
+        ],
+    )
+
+    result = runner.invoke(app, ["investigate-evidence", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence import failed." in output
+    assert "Rejected record index: 1" in output
+    assert "Accepted record count: 1" in output
+    assert "Source: spotify" in output
+    assert "Reference: spotify-analytics:bad-row" in output
+    assert "Record ID: 00000000-0000-0000-0000-000000000202" in output
+    assert "Evidence signal must be compatible with evidence kind." in output
+    assert "Traceback" not in output
+
+
+def test_investigate_evidence_reports_raw_source_failure(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    path.write_text("not json", encoding="utf-8")
+
+    result = runner.invoke(app, ["investigate-evidence", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "Evidence JSON is invalid" in output
+    assert "Traceback" not in output
+
+
 def _write_json(path: Path, records: list[dict[str, object]]) -> None:
     path.write_text(json.dumps(records), encoding="utf-8")
 

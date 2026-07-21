@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +15,7 @@ class ImportValidationReport:
     rejected_source_name: str | None = None
     rejected_reference: str | None = None
     rejected_summary: str | None = None
+    rejected_record_id: UUID | None = None
     error_message: str | None = None
 
     def __post_init__(self) -> None:

@@ -12,6 +12,8 @@ The core model is:
 Evidence -> Observation -> Conclusion -> Recommendation
 ```
 
+The intelligence layer should remain independent of ingestion mechanisms. Whether evidence enters SongTrace through REST APIs, OAuth APIs, CSV imports, Excel reports, PDF statements, manual uploads, webhooks, or future Evidence Connectors, the reasoning engine should operate only on normalized evidence, observations, conclusions, confidence, and future recommendations.
+
 ## Observation Extraction
 
 Observation extraction turns validated evidence into factual patterns.
@@ -25,7 +27,7 @@ Examples include:
 - territory acceleration after campaign activity
 - renewed catalog activity after social attention
 
-The current `ObservationExtractor` is intentionally narrow and deterministic. That is the right foundation. Future extractors should expand carefully and continue relying on structured evidence fields rather than parsing prose summaries.
+The current `ObservationExtractor` is intentionally narrow and deterministic. That is the right foundation. Future extractors should expand carefully and continue relying on structured evidence fields rather than parsing prose summaries or provider-specific source objects.
 
 ## Rule-Based Investigations
 

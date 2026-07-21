@@ -43,6 +43,14 @@ SongTrace must not be designed around one data vendor, streaming platform, distr
 
 Provider-specific schemas should be translated into provider-neutral records before they reach the reasoning engine.
 
+### Connected Music Ecosystem
+
+SongTrace should not attempt to replace the music intelligence providers, artist tools, distributor portals, rights organizations, analytics products, and internal systems that users already rely on.
+
+Instead, SongTrace should become the evidence-driven intelligence layer above that ecosystem. Users should be able to bring their own data by connecting services, subscriptions, exports, reports, and internal records they already have permission to use.
+
+SongTrace's value should come from combining evidence across providers into explainable observations, conclusions, and future recommendations—not from becoming another isolated reporting dashboard.
+
 ### Deterministic reasoning first
 
 The first layer of intelligence should be deterministic and testable. Rules, observation extraction, and confidence policies should be explicit before introducing AI assistance.
@@ -71,6 +79,8 @@ SongTrace is:
 - a system for explaining performance changes
 - a provider-neutral evidence pipeline
 - a traceable conclusion engine
+- a connected intelligence layer above existing music tools and data providers
+- a bring-your-own-data platform for evidence users already have permission to access
 - a future decision-support and opportunity platform
 - a foundation for explainable AI-assisted music strategy
 
@@ -80,6 +90,7 @@ SongTrace is not:
 
 - a generic analytics dashboard
 - a replacement for every music-data provider
+- a destination that requires users to abandon their existing tools, subscriptions, exports, or internal systems
 - a black-box prediction engine
 - a system that guarantees commercial success
 - an autonomous marketing decision-maker
@@ -120,3 +131,5 @@ It should help users answer questions such as:
 - What actions are reasonably supported?
 
 The product should complement data providers. It should help users understand what the data means, what deserves attention, and which actions are supported by trustworthy evidence.
+
+In the long term, SongTrace should support a connected music ecosystem where evidence can arrive through APIs, uploads, reports, royalty statements, internal systems, and future integrations. The reasoning engine should remain unaware of how evidence entered the system. Its responsibility is to reason over normalized evidence, observations, conclusions, confidence, and future recommendations.

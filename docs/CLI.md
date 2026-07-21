@@ -65,6 +65,31 @@ uv run songtrace validate-evidence examples/simple_investigation_evidence.json \
 
 The source name is import metadata. It should not introduce provider-specific behavior into the reasoning model.
 
+### `investigate-ascap-csv-layout-a`
+
+Run the current deterministic investigation pipeline for a private local ASCAP CSV file using the profiled 41-column layout A.
+
+```sh
+uv run songtrace investigate-ascap-csv-layout-a .songtrace-private/ascap/42278445.csv
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace investigate-ascap-csv-layout-a .songtrace-private/ascap/42278445.csv --output json
+```
+
+This command uses:
+
+```text
+AscapCsvRawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
+Evidence -> ObservationExtractor -> Observation -> SimpleInvestigator -> Conclusion
+```
+
+It currently produces royalty reported observations but no royalty conclusions. It supports layout A only. Unsupported ASCAP layouts fail clearly.
+
+This command is intentionally narrow. It is not a general ASCAP connector and does not support layout B, PDFs, reconciliation, APIs, OAuth, persistence, or provider authentication.
+
 ### `profile-ascap-csv-layout`
 
 Profile one or more private local ASCAP CSV statement files without exposing row values or sensitive statement details.

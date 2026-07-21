@@ -115,6 +115,7 @@ No private file should appear before committing.
 Additional project documentation lives in `docs/`, including:
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [CLI Reference](docs/CLI.md)
 - [Import Policy](docs/IMPORT_POLICY.md)
 - [Product Vision](docs/vision/PRODUCT_VISION.md)
 - [Data Strategy](docs/vision/DATA_STRATEGY.md)

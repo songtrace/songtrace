@@ -241,6 +241,8 @@ print(f"conclusions: {len(result.conclusions)}")
 
 Both workflows verify the current deterministic pipeline without adding a provider connector.
 
+For Spotify-specific local validation planning, see [Spotify Evidence Acquisition Checklist](validation/SPOTIFY_EVIDENCE_ACQUISITION.md). That checklist explains how to evaluate Spotify for Artists exports, Spotify Developer API evidence, playlist placement evidence, and platform activity evidence before implementing an API connector.
+
 ## Interpreting failures
 
 A local validation failure can mean different things:

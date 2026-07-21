@@ -199,6 +199,8 @@ This policy supports deterministic imports, repeatable tests, idempotency checks
 
 Before API-backed connectors are introduced, contributors should use private local files only as architecture validation inputs. See [Local Evidence Validation Guide](../LOCAL_EVIDENCE_VALIDATION.md) for the safe workflow.
 
+For Spotify-specific planning, see [Spotify Evidence Acquisition Checklist](../validation/SPOTIFY_EVIDENCE_ACQUISITION.md). It documents what Spotify for Artists, Spotify Developer API, local exports, and future provider connectors may contribute before SongTrace implements Spotify API access.
+
 ## Authentication and Secret Management
 
 Future API-backed Evidence Connectors will need authentication and secret handling, but those concerns must remain outside the domain reasoning model.

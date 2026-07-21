@@ -62,6 +62,135 @@ def test_investigate_evidence_combines_multiple_json_files_in_order(tmp_path: Pa
     ]
 
 
+def test_investigate_evidence_track_filter_keeps_matching_evidence_across_files(
+    tmp_path: Path,
+) -> None:
+    playlist_path = tmp_path / "playlist-evidence.json"
+    audience_path = tmp_path / "audience-evidence.json"
+    other_path = tmp_path / "other-evidence.json"
+    track = {
+        "track_artist": "Warrel Dane",
+        "track_title": "Everything Is Fading",
+        "track_isrc": "GBDHC2120401",
+    }
+    _write_json(playlist_path, [_with_track(_matching_records()[0], **track)])
+    _write_json(
+        audience_path,
+        [
+            _with_track(_matching_records()[1], **track),
+            _with_track(_matching_records()[2], **track),
+        ],
+    )
+    _write_json(
+        other_path,
+        [
+            _with_track(
+                _record(
+                    id="00000000-0000-0000-0000-000000000204",
+                    kind="playlist_activity",
+                    summary="Another track received playlist placement.",
+                    signals=["playlist_placement"],
+                ),
+                track_artist="Other Artist",
+                track_title="Other Track",
+                track_isrc="OTHERISRC",
+            ),
+            _record(
+                id="00000000-0000-0000-0000-000000000205",
+                kind="audience_activity",
+                summary="Untracked evidence should be excluded by track filter.",
+                signals=["stream_growth"],
+            ),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-evidence",
+            str(playlist_path),
+            str(audience_path),
+            str(other_path),
+            "--output",
+            "json",
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "GBDHC2120401",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 3
+    assert payload["observation_count"] == 2
+    assert payload["conclusion_count"] == 1
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000201",
+        "00000000-0000-0000-0000-000000000202",
+        "00000000-0000-0000-0000-000000000203",
+    ]
+
+
+def test_investigate_evidence_track_filter_isrc_participates_in_exact_matching(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(
+        path,
+        [
+            _with_track(
+                _matching_records()[0],
+                track_artist="Warrel Dane",
+                track_title="Everything Is Fading",
+                track_isrc="GBDHC2120401",
+            )
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-evidence",
+            str(path),
+            "--output",
+            "json",
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "DIFFERENTISRC",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 0
+    assert payload["observation_count"] == 0
+    assert payload["conclusion_count"] == 0
+
+
+def test_investigate_evidence_track_filter_requires_artist_and_title(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        [
+            "investigate-evidence",
+            str(path),
+            "--track-artist",
+            "Warrel Dane",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "SongTrace Evidence Investigation" not in result.stdout
+
+
 def test_investigate_evidence_later_file_failure_produces_no_partial_output(
     tmp_path: Path,
 ) -> None:
@@ -530,6 +659,21 @@ def test_investigate_playlist_platform_csv_preserves_platform_file_order(
         "00000000-0000-0000-0000-000000000302",
         "00000000-0000-0000-0000-000000000303",
     ]
+
+
+def _with_track(
+    record: dict[str, object],
+    *,
+    track_artist: str,
+    track_title: str,
+    track_isrc: str | None = None,
+) -> dict[str, object]:
+    return {
+        **record,
+        "track_artist": track_artist,
+        "track_title": track_title,
+        "track_isrc": track_isrc,
+    }
 
 
 def test_investigate_playlist_platform_csv_requires_platform_file(

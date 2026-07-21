@@ -441,6 +441,24 @@ Evidence -> ObservationExtractor -> Observation -> SimpleInvestigator -> Conclus
 
 If any file fails to load or import, the command fails without producing partial investigation output.
 
+#### Exact track filtering
+
+Use exact track filtering when investigating mixed evidence files that may contain records for multiple tracks:
+
+```sh
+uv run songtrace investigate-evidence \
+  .songtrace-private/everything-is-fading/spotify-track-metadata.json \
+  .songtrace-private/everything-is-fading/spotify-playlist-placement.json \
+  .songtrace-private/everything-is-fading/platform-activity.json \
+  --track-artist "Warrel Dane" \
+  --track-title "Everything Is Fading" \
+  --track-isrc "GBDHC2120401"
+```
+
+If any track filter option is supplied, both `--track-artist` and `--track-title` are required. `--track-isrc` is optional, but when supplied it must also match exactly. Evidence without track identity is excluded while a track filter is active.
+
+Track filtering is deterministic and local. It does not perform fuzzy matching, provider lookups, or automatic track identity resolution.
+
 #### JSON output
 
 Use JSON output for machine-readable investigation summaries:

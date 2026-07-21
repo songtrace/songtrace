@@ -29,6 +29,7 @@ from songtrace.providers.spotify_playlist_discovery import (
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
     discover_spotify_playlist_track_memberships,
+    discover_spotify_playlist_track_memberships_for_queries,
 )
 from songtrace.providers.spotify_playlist_membership import (
     SpotifyPlaylistTrackMembership,
@@ -66,6 +67,7 @@ __all__ = [
     "SpotifyPlaylistTrackMembership",
     "SpotifyTrackMetadata",
     "discover_spotify_playlist_track_memberships",
+    "discover_spotify_playlist_track_memberships_for_queries",
     "lookup_spotify_playlist_track_membership",
     "lookup_spotify_track_metadata",
     "profile_ascap_csv_layout",

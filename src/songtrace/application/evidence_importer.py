@@ -61,9 +61,25 @@ def _import_evidence(
     fallback_observed_at: datetime,
 ) -> tuple[tuple[Evidence, ...], ImportValidationReport]:
     imported: list[Evidence] = []
+    seen_record_ids: set[UUID] = set()
     for index, record in enumerate(records):
+        if record.id is not None and record.id in seen_record_ids:
+            report = ImportValidationReport(
+                accepted_record_count=len(imported),
+                rejected_record_index=index,
+                rejected_source_name=record.source_name,
+                rejected_reference=record.reference,
+                rejected_summary=record.summary,
+                rejected_record_id=record.id,
+                error_message=f"duplicate evidence id: {record.id}",
+            )
+            raise EvidenceImportError(report)
+
         try:
-            imported.append(_to_evidence(record, fallback_observed_at))
+            evidence = _to_evidence(record, fallback_observed_at)
+            imported.append(evidence)
+            if record.id is not None:
+                seen_record_ids.add(record.id)
         except ValueError as error:
             report = ImportValidationReport(
                 accepted_record_count=len(imported),
@@ -71,6 +87,7 @@ def _import_evidence(
                 rejected_source_name=record.source_name,
                 rejected_reference=record.reference,
                 rejected_summary=record.summary,
+                rejected_record_id=record.id,
                 error_message=str(error),
             )
             raise EvidenceImportError(report) from error

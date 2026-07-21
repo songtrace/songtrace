@@ -19,6 +19,7 @@ _OBSERVED_AT = datetime(2026, 7, 18, 12, 0, tzinfo=UTC)
 _OCCURRED_AT = datetime(2026, 7, 17, 12, 0, tzinfo=UTC)
 _FALLBACK_OBSERVED_AT = datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
 _BATCH_ID = UUID("00000000-0000-0000-0000-000000000901")
+_DUPLICATE_EVIDENCE_ID = UUID("00000000-0000-0000-0000-000000000902")
 
 
 def test_successfully_imports_raw_evidence_records() -> None:
@@ -394,6 +395,81 @@ def test_import_batch_does_not_return_partial_data_when_record_is_invalid() -> N
     assert isinstance(exc_info.value.__cause__, ValueError)
 
 
+def test_import_records_rejects_duplicate_explicit_evidence_ids() -> None:
+    records = (
+        RawEvidenceRecord(
+            id=_DUPLICATE_EVIDENCE_ID,
+            source_name="spotify",
+            kind=EvidenceKind.PLAYLIST_ACTIVITY,
+            summary="Everything Is Fading received editorial playlist placement.",
+            observed_at=_OBSERVED_AT,
+            reference="spotify-playlist:dark-metal-editorial",
+            signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
+        ),
+        RawEvidenceRecord(
+            id=_DUPLICATE_EVIDENCE_ID,
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased.",
+            observed_at=_OBSERVED_AT,
+            reference="spotify-analytics:streams-week-2026-07-18",
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+
+    with pytest.raises(EvidenceImportError, match="duplicate evidence id") as exc_info:
+        EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records(records)
+
+    report = exc_info.value.report
+    assert report.accepted_record_count == 1
+    assert report.rejected_record_index == 1
+    assert report.rejected_record_id == _DUPLICATE_EVIDENCE_ID
+    assert report.rejected_source_name == "spotify"
+    assert report.rejected_reference == "spotify-analytics:streams-week-2026-07-18"
+    assert report.rejected_summary == "Streams increased."
+    assert report.error_message == f"duplicate evidence id: {_DUPLICATE_EVIDENCE_ID}"
+
+
+def test_import_batch_rejects_duplicate_explicit_evidence_ids() -> None:
+    records = (
+        RawEvidenceRecord(
+            id=_DUPLICATE_EVIDENCE_ID,
+            source_name="spotify",
+            kind=EvidenceKind.PLAYLIST_ACTIVITY,
+            summary="Everything Is Fading received editorial playlist placement.",
+            observed_at=_OBSERVED_AT,
+            signals=(EvidenceSignal.PLAYLIST_PLACEMENT,),
+        ),
+        RawEvidenceRecord(
+            id=_DUPLICATE_EVIDENCE_ID,
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased.",
+            observed_at=_OBSERVED_AT,
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+
+    with pytest.raises(EvidenceImportError, match="duplicate evidence id") as exc_info:
+        EvidenceImporter(
+            clock=lambda: _FALLBACK_OBSERVED_AT,
+            batch_id_factory=lambda: _BATCH_ID,
+        ).import_batch(records, source_name="spotify")
+
+    report = exc_info.value.report
+    assert report.accepted_record_count == 1
+    assert report.rejected_record_index == 1
+    assert report.rejected_record_id == _DUPLICATE_EVIDENCE_ID
+
+
+def test_importer_allows_multiple_generated_evidence_ids() -> None:
+    evidence = EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records(
+        (_playlist_record(), _stream_record())
+    )
+
+    assert len({item.id for item in evidence}) == 2
+
+
 def test_import_records_failure_includes_validation_context() -> None:
     records = (
         _playlist_record(),
@@ -413,6 +489,7 @@ def test_import_records_failure_includes_validation_context() -> None:
     report = exc_info.value.report
     assert report.accepted_record_count == 1
     assert report.rejected_record_index == 1
+    assert report.rejected_record_id is None
     assert report.rejected_reference == "spotify-analytics:streams-week-2026-07-18"
     assert report.error_message == "Evidence observed_at must be timezone-aware."
 

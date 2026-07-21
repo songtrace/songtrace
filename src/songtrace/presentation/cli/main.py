@@ -386,6 +386,27 @@ def investigate_evidence(
             help="Output format: text or json.",
         ),
     ] = "text",
+    track_artist: Annotated[
+        str | None,
+        typer.Option(
+            "--track-artist",
+            help="Optional exact track artist filter.",
+        ),
+    ] = None,
+    track_title: Annotated[
+        str | None,
+        typer.Option(
+            "--track-title",
+            help="Optional exact track title filter.",
+        ),
+    ] = None,
+    track_isrc: Annotated[
+        str | None,
+        typer.Option(
+            "--track-isrc",
+            help="Optional exact track ISRC filter.",
+        ),
+    ] = None,
 ) -> None:
     """Run the deterministic investigation pipeline for one or more raw evidence files."""
 
@@ -396,7 +417,10 @@ def investigate_evidence(
         )
 
     output_format = parse_output_format(output)
+    track_filter = _parse_track_filter(track_artist, track_title, track_isrc)
     _raw_records, evidence = load_and_import_evidence(tuple(evidence_files))
+    if track_filter is not None:
+        evidence = _filter_evidence_by_track(evidence, track_filter)
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 

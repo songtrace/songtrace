@@ -95,29 +95,41 @@ Generic raw evidence files may include:
 
 ## Smoke-test workflow
 
-Use the CLI to run the current deterministic pipeline against a local raw evidence file:
+Start by validating that a local file can cross the import boundary:
 
 ```sh
-uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv
 ```
 
 The command supports the existing generic raw evidence source formats:
 
 ```sh
-uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.json
-uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv
-uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.xlsx
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.json
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.xlsx
 ```
 
-It loads raw records, imports validated domain evidence, extracts observations, runs the deterministic investigator, and prints evidence, observation, and conclusion counts.
+It loads raw records, imports validated domain evidence, and prints raw record counts, evidence counts, and evidence IDs. It does not extract observations or run investigation rules, so it is the best first check for real-world files whose evidence may not yet map to SongTrace's current reasoning rules.
 
-For scripts or repeatable local checks, request a small provider-neutral JSON summary:
+For scripts or repeatable local checks, request a small provider-neutral JSON validation summary:
+
+```sh
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv --output json
+```
+
+After the file imports successfully, run the current deterministic investigation pipeline:
+
+```sh
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv
+```
+
+For investigation scripts, request JSON output:
 
 ```sh
 uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv --output json
 ```
 
-The JSON output includes counts, evidence IDs, observation IDs, and conclusion traceability fields. It is intended for local validation automation, not as a full report export format.
+The investigation JSON output includes counts, evidence IDs, observation IDs, and conclusion traceability fields. CLI JSON output is intended for local validation automation, not as a full report export format.
 
 For expected validation failures, the command exits non-zero and prints a concise provider-neutral text error instead of a Python traceback. Import validation errors include the rejected record index, accepted record count before rejection, available source/reference/record ID context, and the validation message.
 

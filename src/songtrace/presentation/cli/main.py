@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 from rich.console import Console
@@ -94,6 +94,53 @@ def investigate_evidence(
 ) -> None:
     """Run the deterministic investigation pipeline for a raw evidence file."""
 
+    output_format = _parse_output_format(output)
+    _raw_records, evidence = _load_and_import_evidence(evidence_file)
+    observations = ObservationExtractor().extract(evidence)
+    result = SimpleInvestigator().investigate(observations)
+
+    match output_format:
+        case "text":
+            _print_text_result(evidence, observations, result.conclusions)
+        case "json":
+            _print_json_result(evidence, observations, result.conclusions)
+
+
+@app.command("validate-evidence")
+def validate_evidence(
+    evidence_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to a JSON, CSV, or XLSX raw evidence file.",
+        ),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Validate that a raw evidence file can be imported into domain evidence."""
+
+    output_format = _parse_output_format(output)
+    raw_records, evidence = _load_and_import_evidence(evidence_file)
+
+    match output_format:
+        case "text":
+            _print_validation_text_result(raw_records, evidence)
+        case "json":
+            _print_validation_json_result(raw_records, evidence)
+
+
+def _load_and_import_evidence(
+    evidence_file: Path,
+) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
     try:
         raw_records = _load_raw_records(evidence_file)
         evidence = EvidenceImporter().import_records(raw_records)
@@ -104,19 +151,20 @@ def investigate_evidence(
         _print_source_error(error)
         raise typer.Exit(1) from error
 
-    observations = ObservationExtractor().extract(evidence)
-    result = SimpleInvestigator().investigate(observations)
+    return raw_records, evidence
 
-    match output.lower():
-        case "text":
-            _print_text_result(evidence, observations, result.conclusions)
-        case "json":
-            _print_json_result(evidence, observations, result.conclusions)
-        case _:
-            raise typer.BadParameter(
-                "unsupported output format; expected text or json",
-                param_hint="--output",
-            )
+
+def _parse_output_format(output: str) -> Literal["text", "json"]:
+    output_format = output.lower()
+    if output_format == "text":
+        return "text"
+    if output_format == "json":
+        return "json"
+
+    raise typer.BadParameter(
+        "unsupported output format; expected text or json",
+        param_hint="--output",
+    )
 
 
 def _print_text_result(
@@ -159,6 +207,31 @@ def _print_json_result(
             }
             for conclusion in conclusions
         ],
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def _print_validation_text_result(
+    raw_records: tuple[RawEvidenceRecord, ...],
+    evidence: tuple[Evidence, ...],
+) -> None:
+    console.print("[bold]SongTrace Evidence Validation[/bold]")
+    console.print()
+    console.print(f"Raw records: {len(raw_records)}")
+    console.print(f"Evidence: {len(evidence)}")
+    console.print("Evidence IDs:")
+    for item in evidence:
+        console.print(f"- {item.id}")
+
+
+def _print_validation_json_result(
+    raw_records: tuple[RawEvidenceRecord, ...],
+    evidence: tuple[Evidence, ...],
+) -> None:
+    payload = {
+        "raw_record_count": len(raw_records),
+        "evidence_count": len(evidence),
+        "evidence_ids": [str(item.id) for item in evidence],
     }
     print(json.dumps(payload, sort_keys=True))
 

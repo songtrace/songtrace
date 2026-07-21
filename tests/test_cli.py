@@ -49,6 +49,102 @@ def test_investigate() -> None:
     assert "Awaiting evidence" in result.stdout
 
 
+def test_validate_evidence_text_success(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+
+    assert result.exit_code == 0
+    assert "SongTrace Evidence Validation" in result.stdout
+    assert "Raw records: 3" in result.stdout
+    assert "Evidence: 3" in result.stdout
+    assert "Evidence IDs:" in result.stdout
+    assert "00000000-0000-0000-0000-000000000201" in result.stdout
+
+
+def test_validate_evidence_json_success(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["validate-evidence", str(path), "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "raw_record_count": 3,
+        "evidence_count": 3,
+        "evidence_ids": [
+            "00000000-0000-0000-0000-000000000201",
+            "00000000-0000-0000-0000-000000000202",
+            "00000000-0000-0000-0000-000000000203",
+        ],
+    }
+
+
+def test_validate_evidence_rejects_unsupported_extension(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.txt"
+    path.write_text("not evidence", encoding="utf-8")
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+
+    assert result.exit_code != 0
+    assert "unsupported evidence file extension" in result.output + result.stderr
+
+
+def test_validate_evidence_reports_raw_source_failure(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    path.write_text("not json", encoding="utf-8")
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "Evidence JSON is invalid" in output
+    assert "Traceback" not in output
+
+
+def test_validate_evidence_reports_import_validation_failure(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(
+        path,
+        [
+            _record(signals=["playlist_placement"]),
+            _record(
+                id="00000000-0000-0000-0000-000000000202",
+                kind="playlist_activity",
+                summary="Stream growth was mislabeled as playlist activity.",
+                reference="spotify-analytics:bad-row",
+                signals=["stream_growth"],
+            ),
+        ],
+    )
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence import failed." in output
+    assert "Rejected record index: 1" in output
+    assert "Accepted record count: 1" in output
+    assert "Evidence signal must be compatible with evidence kind." in output
+    assert "Traceback" not in output
+
+
+def test_validate_evidence_does_not_require_observations_or_conclusions(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, [_record(signals=["playlist_placement"])])
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+
+    assert result.exit_code == 0
+    assert "Raw records: 1" in result.stdout
+    assert "Evidence: 1" in result.stdout
+    assert "Observations" not in result.stdout
+    assert "Conclusions" not in result.stdout
+
+
 def test_investigate_evidence_json_file(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())

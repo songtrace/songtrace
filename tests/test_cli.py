@@ -86,6 +86,87 @@ def test_validate_evidence_json_success(tmp_path: Path) -> None:
     ]
 
 
+def test_validate_evidence_text_uses_deterministic_metadata(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        [
+            "validate-evidence",
+            str(path),
+            "--batch-id",
+            "00000000-0000-0000-0000-000000000901",
+            "--imported-at",
+            "2026-07-21T12:00:00+00:00",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Batch ID: 00000000-0000-0000-0000-000000000901" in result.stdout
+    assert "Imported at: 2026-07-21T12:00:00+00:00" in result.stdout
+
+
+def test_validate_evidence_json_uses_deterministic_metadata(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        [
+            "validate-evidence",
+            str(path),
+            "--output",
+            "json",
+            "--batch-id",
+            "00000000-0000-0000-0000-000000000901",
+            "--imported-at",
+            "2026-07-21T12:00:00+00:00",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["batch_id"] == "00000000-0000-0000-0000-000000000901"
+    assert payload["imported_at"] == "2026-07-21T12:00:00+00:00"
+
+
+def test_validate_evidence_rejects_invalid_batch_id(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["validate-evidence", str(path), "--batch-id", "not-a-uuid"])
+
+    assert result.exit_code != 0
+    assert "batch ID must be a valid UUID" in result.output + result.stderr
+
+
+def test_validate_evidence_rejects_invalid_imported_at(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        ["validate-evidence", str(path), "--imported-at", "not-a-datetime"],
+    )
+
+    assert result.exit_code != 0
+    assert "imported_at must be an ISO datetime" in result.output + result.stderr
+
+
+def test_validate_evidence_rejects_naive_imported_at(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        ["validate-evidence", str(path), "--imported-at", "2026-07-21T12:00:00"],
+    )
+
+    assert result.exit_code != 0
+    assert "imported_at must be timezone-aware" in result.output + result.stderr
+
+
 def test_validate_evidence_uses_custom_source_name(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())

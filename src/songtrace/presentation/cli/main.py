@@ -1,6 +1,8 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
+from uuid import UUID
 
 import typer
 from rich.console import Console
@@ -133,11 +135,32 @@ def validate_evidence(
             help="Provider-neutral source name for import batch metadata.",
         ),
     ] = "local_file",
+    batch_id: Annotated[
+        str | None,
+        typer.Option(
+            "--batch-id",
+            help="Optional deterministic import batch UUID.",
+        ),
+    ] = None,
+    imported_at: Annotated[
+        str | None,
+        typer.Option(
+            "--imported-at",
+            help="Optional deterministic timezone-aware ISO import timestamp.",
+        ),
+    ] = None,
 ) -> None:
     """Validate that a raw evidence file can be imported into domain evidence."""
 
     output_format = _parse_output_format(output)
-    raw_records, batch = _load_and_import_batch(evidence_file, source_name=source_name)
+    parsed_batch_id = _parse_optional_batch_id(batch_id)
+    parsed_imported_at = _parse_optional_imported_at(imported_at)
+    raw_records, batch = _load_and_import_batch(
+        evidence_file,
+        source_name=source_name,
+        batch_id=parsed_batch_id,
+        imported_at=parsed_imported_at,
+    )
 
     match output_format:
         case "text":
@@ -166,10 +189,16 @@ def _load_and_import_batch(
     evidence_file: Path,
     *,
     source_name: str,
+    batch_id: UUID | None,
+    imported_at: datetime | None,
 ) -> tuple[tuple[RawEvidenceRecord, ...], EvidenceImportBatch]:
     try:
         raw_records = _load_raw_records(evidence_file)
-        batch = EvidenceImporter().import_batch(raw_records, source_name=source_name)
+        importer = EvidenceImporter(
+            clock=(lambda: imported_at) if imported_at is not None else None,
+            batch_id_factory=(lambda: batch_id) if batch_id is not None else None,
+        )
+        batch = importer.import_batch(raw_records, source_name=source_name)
     except EvidenceImportError as error:
         _print_import_error(error)
         raise typer.Exit(1) from error
@@ -178,6 +207,40 @@ def _load_and_import_batch(
         raise typer.Exit(1) from error
 
     return raw_records, batch
+
+
+def _parse_optional_batch_id(value: str | None) -> UUID | None:
+    if value is None:
+        return None
+
+    try:
+        return UUID(value)
+    except ValueError as error:
+        raise typer.BadParameter(
+            "batch ID must be a valid UUID",
+            param_hint="--batch-id",
+        ) from error
+
+
+def _parse_optional_imported_at(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+
+    try:
+        imported_at = datetime.fromisoformat(value)
+    except ValueError as error:
+        raise typer.BadParameter(
+            "imported_at must be an ISO datetime",
+            param_hint="--imported-at",
+        ) from error
+
+    if imported_at.tzinfo is None or imported_at.utcoffset() is None:
+        raise typer.BadParameter(
+            "imported_at must be timezone-aware",
+            param_hint="--imported-at",
+        )
+
+    return imported_at
 
 
 def _parse_output_format(output: str) -> Literal["text", "json"]:

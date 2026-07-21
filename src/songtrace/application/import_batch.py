@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+from songtrace.application.import_validation import ImportValidationReport
 from songtrace.domain.evidence import Evidence
 
 
@@ -41,6 +42,7 @@ class EvidenceImportBatch:
 
     metadata: ImportBatchMetadata
     evidence: tuple[Evidence, ...]
+    validation_report: ImportValidationReport | None = None
 
     def __post_init__(self) -> None:
         evidence = tuple(self.evidence)
@@ -48,4 +50,15 @@ class EvidenceImportBatch:
             msg = "metadata record_count must match evidence count"
             raise ValueError(msg)
 
+        validation_report = self.validation_report or ImportValidationReport(
+            accepted_record_count=len(evidence)
+        )
+        if validation_report.accepted_record_count != len(evidence):
+            msg = "validation accepted_record_count must match evidence count"
+            raise ValueError(msg)
+        if not validation_report.is_successful:
+            msg = "evidence import batch cannot contain a failed validation report"
+            raise ValueError(msg)
+
         object.__setattr__(self, "evidence", evidence)
+        object.__setattr__(self, "validation_report", validation_report)

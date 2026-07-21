@@ -9,6 +9,7 @@ import pytest
 
 from songtrace.application.evidence_importer import EvidenceImporter
 from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
+from songtrace.application.import_validation import EvidenceImportError, ImportValidationReport
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.application.raw_evidence_source import RawEvidenceSource
 from songtrace.domain.evidence import Evidence, EvidenceKind, EvidenceSignal
@@ -201,6 +202,7 @@ def test_import_batch_returns_evidence_with_metadata() -> None:
     assert tuple(item.summary for item in batch.evidence) == tuple(
         record.summary for record in records
     )
+    assert batch.validation_report == ImportValidationReport(accepted_record_count=2)
 
 
 def test_import_batch_metadata_timestamp_is_deterministic() -> None:
@@ -249,6 +251,7 @@ def test_import_batch_record_count_supports_empty_imports() -> None:
 
     assert batch.evidence == ()
     assert batch.metadata.record_count == 0
+    assert batch.validation_report == ImportValidationReport(accepted_record_count=0)
 
 
 def test_import_batch_metadata_is_immutable() -> None:
@@ -271,6 +274,35 @@ def test_import_batch_result_is_immutable() -> None:
 
     with pytest.raises(FrozenInstanceError):
         batch.evidence = ()  # type: ignore[misc]
+
+
+def test_import_validation_report_is_immutable() -> None:
+    report = ImportValidationReport(accepted_record_count=1)
+
+    with pytest.raises(FrozenInstanceError):
+        report.accepted_record_count = 2  # type: ignore[misc]
+
+
+def test_import_validation_report_rejects_negative_accepted_record_count() -> None:
+    with pytest.raises(ValueError, match="accepted_record_count must not be negative"):
+        ImportValidationReport(accepted_record_count=-1)
+
+
+def test_import_validation_report_rejects_negative_rejected_record_index() -> None:
+    with pytest.raises(ValueError, match="rejected_record_index must not be negative"):
+        ImportValidationReport(
+            accepted_record_count=0,
+            rejected_record_index=-1,
+            error_message="invalid",
+        )
+
+
+def test_import_validation_report_rejects_incomplete_failure_context() -> None:
+    with pytest.raises(
+        ValueError,
+        match="rejected_record_index and error_message must both be set or both be absent",
+    ):
+        ImportValidationReport(accepted_record_count=0, rejected_record_index=1)
 
 
 def test_import_batch_rejects_blank_source_name() -> None:
@@ -346,11 +378,43 @@ def test_import_batch_does_not_return_partial_data_when_record_is_invalid() -> N
         ),
     )
 
-    with pytest.raises(ValueError, match="observed_at must be timezone-aware"):
+    with pytest.raises(EvidenceImportError, match="observed_at must be timezone-aware") as exc_info:
         EvidenceImporter(
             clock=lambda: _FALLBACK_OBSERVED_AT,
             batch_id_factory=lambda: _BATCH_ID,
         ).import_batch(records, source_name="spotify")
+
+    report = exc_info.value.report
+    assert report.accepted_record_count == 1
+    assert report.rejected_record_index == 1
+    assert report.rejected_source_name == "spotify"
+    assert report.rejected_summary == "Streams increased."
+    assert report.rejected_reference is None
+    assert report.error_message == "Evidence observed_at must be timezone-aware."
+    assert isinstance(exc_info.value.__cause__, ValueError)
+
+
+def test_import_records_failure_includes_validation_context() -> None:
+    records = (
+        _playlist_record(),
+        RawEvidenceRecord(
+            source_name="spotify",
+            kind=EvidenceKind.AUDIENCE_ACTIVITY,
+            summary="Streams increased.",
+            observed_at=datetime(2026, 7, 18, 12, 0),
+            reference="spotify-analytics:streams-week-2026-07-18",
+            signals=(EvidenceSignal.STREAM_GROWTH,),
+        ),
+    )
+
+    with pytest.raises(EvidenceImportError, match="Import failed for record 1") as exc_info:
+        EvidenceImporter(clock=lambda: _FALLBACK_OBSERVED_AT).import_records(records)
+
+    report = exc_info.value.report
+    assert report.accepted_record_count == 1
+    assert report.rejected_record_index == 1
+    assert report.rejected_reference == "spotify-analytics:streams-week-2026-07-18"
+    assert report.error_message == "Evidence observed_at must be timezone-aware."
 
 
 @dataclass(frozen=True, slots=True)

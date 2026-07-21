@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
+from songtrace.application.import_validation import EvidenceImportError, ImportValidationReport
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSource
@@ -27,7 +28,7 @@ class EvidenceImporter:
         """Import all records or raise without returning partial data."""
 
         fallback_observed_at = self._clock()
-        evidence = tuple(_to_evidence(record, fallback_observed_at) for record in records)
+        evidence, _validation_report = _import_evidence(records, fallback_observed_at)
 
         return evidence
 
@@ -40,7 +41,7 @@ class EvidenceImporter:
         """Import all records and return immutable batch metadata."""
 
         imported_at = self._clock()
-        evidence = tuple(_to_evidence(record, imported_at) for record in records)
+        evidence, validation_report = _import_evidence(records, imported_at)
         metadata = ImportBatchMetadata(
             id=self._batch_id_factory(),
             source_name=source_name,
@@ -48,7 +49,35 @@ class EvidenceImporter:
             record_count=len(evidence),
         )
 
-        return EvidenceImportBatch(metadata=metadata, evidence=evidence)
+        return EvidenceImportBatch(
+            metadata=metadata,
+            evidence=evidence,
+            validation_report=validation_report,
+        )
+
+
+def _import_evidence(
+    records: tuple[RawEvidenceRecord, ...],
+    fallback_observed_at: datetime,
+) -> tuple[tuple[Evidence, ...], ImportValidationReport]:
+    imported: list[Evidence] = []
+    for index, record in enumerate(records):
+        try:
+            imported.append(_to_evidence(record, fallback_observed_at))
+        except ValueError as error:
+            report = ImportValidationReport(
+                accepted_record_count=len(imported),
+                rejected_record_index=index,
+                rejected_source_name=record.source_name,
+                rejected_reference=record.reference,
+                rejected_summary=record.summary,
+                error_message=str(error),
+            )
+            raise EvidenceImportError(report) from error
+
+    evidence = tuple(imported)
+    report = ImportValidationReport(accepted_record_count=len(evidence))
+    return evidence, report
 
 
 def _to_evidence(record: RawEvidenceRecord, fallback_observed_at: datetime) -> Evidence:

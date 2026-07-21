@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from uuid import UUID, uuid4
 
+from songtrace.application.import_batch import EvidenceImportBatch, ImportBatchMetadata
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSource
@@ -13,8 +15,13 @@ from songtrace.domain.evidence_source import EvidenceSource as DomainEvidenceSou
 class EvidenceImporter:
     """Construct validated Evidence from raw boundary records."""
 
-    def __init__(self, clock: Callable[[], datetime] | None = None) -> None:
+    def __init__(
+        self,
+        clock: Callable[[], datetime] | None = None,
+        batch_id_factory: Callable[[], UUID] | None = None,
+    ) -> None:
         self._clock = clock or _utc_now
+        self._batch_id_factory = batch_id_factory or uuid4
 
     def import_records(self, records: tuple[RawEvidenceRecord, ...]) -> tuple[Evidence, ...]:
         """Import all records or raise without returning partial data."""
@@ -23,6 +30,25 @@ class EvidenceImporter:
         evidence = tuple(_to_evidence(record, fallback_observed_at) for record in records)
 
         return evidence
+
+    def import_batch(
+        self,
+        records: tuple[RawEvidenceRecord, ...],
+        *,
+        source_name: str,
+    ) -> EvidenceImportBatch:
+        """Import all records and return immutable batch metadata."""
+
+        imported_at = self._clock()
+        evidence = tuple(_to_evidence(record, imported_at) for record in records)
+        metadata = ImportBatchMetadata(
+            id=self._batch_id_factory(),
+            source_name=source_name,
+            imported_at=imported_at,
+            record_count=len(evidence),
+        )
+
+        return EvidenceImportBatch(metadata=metadata, evidence=evidence)
 
 
 def _to_evidence(record: RawEvidenceRecord, fallback_observed_at: datetime) -> Evidence:

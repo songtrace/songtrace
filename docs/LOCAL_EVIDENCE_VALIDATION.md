@@ -117,7 +117,13 @@ uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv
 uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.xlsx
 ```
 
-It loads raw records, imports validated domain evidence, and prints raw record counts, evidence counts, and evidence IDs. It does not extract observations or run investigation rules, so it is the best first check for real-world files whose evidence may not yet map to SongTrace's current reasoning rules.
+It loads raw records, imports validated domain evidence, and prints import batch metadata, raw record counts, evidence counts, and evidence IDs. It does not extract observations or run investigation rules, so it is the best first check for real-world files whose evidence may not yet map to SongTrace's current reasoning rules.
+
+The default validation source name is `local_file` so local filenames are not exposed in output. Use `--source-name` when a provider-neutral source label is useful:
+
+```sh
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv --source-name local_statement_upload
+```
 
 For scripts or repeatable local checks, request a small provider-neutral JSON validation summary:
 

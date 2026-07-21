@@ -57,6 +57,9 @@ def test_validate_evidence_text_success(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "SongTrace Evidence Validation" in result.stdout
+    assert "Batch ID:" in result.stdout
+    assert "Source name: local_file" in result.stdout
+    assert "Imported at:" in result.stdout
     assert "Raw records: 3" in result.stdout
     assert "Evidence: 3" in result.stdout
     assert "Evidence IDs:" in result.stdout
@@ -71,15 +74,43 @@ def test_validate_evidence_json_success(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload == {
-        "raw_record_count": 3,
-        "evidence_count": 3,
-        "evidence_ids": [
-            "00000000-0000-0000-0000-000000000201",
-            "00000000-0000-0000-0000-000000000202",
-            "00000000-0000-0000-0000-000000000203",
-        ],
-    }
+    assert payload["batch_id"]
+    assert payload["source_name"] == "local_file"
+    assert payload["imported_at"]
+    assert payload["raw_record_count"] == 3
+    assert payload["evidence_count"] == 3
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000201",
+        "00000000-0000-0000-0000-000000000202",
+        "00000000-0000-0000-0000-000000000203",
+    ]
+
+
+def test_validate_evidence_uses_custom_source_name(tmp_path: Path) -> None:
+    path = tmp_path / "evidence.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(
+        app,
+        ["validate-evidence", str(path), "--source-name", "local_statement_upload"],
+    )
+
+    assert result.exit_code == 0
+    assert "Source name: local_statement_upload" in result.stdout
+
+
+def test_validate_evidence_default_source_name_does_not_expose_local_path(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "private-royalty-statement.json"
+    _write_json(path, _matching_records())
+
+    result = runner.invoke(app, ["validate-evidence", str(path)])
+
+    assert result.exit_code == 0
+    assert "Source name: local_file" in result.stdout
+    assert str(path) not in result.stdout
+    assert "private-royalty-statement" not in result.stdout
 
 
 def test_validate_evidence_rejects_unsupported_extension(tmp_path: Path) -> None:

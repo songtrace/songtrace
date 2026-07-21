@@ -70,6 +70,50 @@ The existing `EvidenceKind` and `EvidenceSignal` models are early examples of pr
 - Exploratory evidence should not drive conclusions until availability, licensing, quality, and interpretation risks are understood.
 - Every catalog item should eventually map to provider-neutral evidence, observations, conclusions, or confidence inputs.
 
+## Data-Source Matrix
+
+The data-source matrix maps provider-neutral evidence needs to likely source categories. It is not a vendor commitment. Its purpose is to make data assumptions explicit before SongTrace depends on them for observations, conclusions, confidence, or future recommendations.
+
+### Source category definitions
+
+| Source category | Description |
+| --- | --- |
+| Public APIs | Platform APIs or public endpoints with documented access, rate limits, and terms. |
+| User imports | Files or manual uploads supplied by artists, managers, labels, publishers, or other authorized users. |
+| Distributor exports | Reports exported from distributors, label services, royalty platforms, or accounting systems. |
+| Commercial data providers | Licensed third-party platforms that aggregate music, playlist, social, chart, audience, or market data. |
+| Social and short-form platforms | Native platform data from social, creator, video, and short-form services. |
+| Playlist and editorial data | Playlist placement, curator, editorial, algorithmic, and playlist-metadata sources. |
+| Radio, touring, sync, and press sources | Specialized sources for non-streaming exposure, live activity, licensing, publicity, and media coverage. |
+
+### Initial data-source matrix
+
+| Evidence category | Likely source categories | Availability | Expected freshness | Historical depth | Licensing concerns | Data quality notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| Artist identity and canonical identifiers | Public APIs, user imports, commercial data providers | Generally obtainable | Medium to high | Medium to deep | Terms may restrict redistribution of platform identifiers or metadata. | Identity resolution can be difficult across aliases, collaborations, remasters, and inconsistent provider IDs. |
+| Release identity, track identity, and release dates | Public APIs, user imports, distributor exports, commercial data providers | Generally obtainable | Medium to high | Medium to deep | Metadata rights and redistribution rules may vary by source. | Versioning, regional release dates, alternate mixes, and duplicate records require careful normalization. |
+| Stream count and stream-growth evidence | User imports, distributor exports, commercial data providers, limited public APIs | Partly obtainable | Medium to high | Variable | Detailed streaming analytics are often account-bound, licensed, or commercially gated. | Counts may differ by provider methodology, reporting lag, fraud filtering, or territory coverage. |
+| Save count and save-growth evidence | User imports, platform analytics exports, commercial data providers where available | Partly obtainable | Medium | Variable | Save-level analytics may be account-bound or unavailable through public APIs. | Save semantics differ by platform and may be unavailable historically. |
+| Playlist placement evidence | Playlist and editorial data, commercial data providers, public APIs, user imports | Obtainable with caveats | Medium to high | Variable | Playlist metadata and historical placement access may require commercial licensing. | Placement timing, playlist type, track position, and curator identity may be incomplete or inconsistent. |
+| Playlist type, size, position, and curator context | Playlist and editorial data, commercial data providers, limited public APIs | Partly obtainable | Medium | Variable | Commercial playlist databases may restrict reuse or export. | Playlist followers are imperfect proxies for reach; editorial, algorithmic, user, and paid contexts must be distinguished. |
+| Listener, follower, fan, or subscriber growth | User imports, platform analytics exports, public APIs, commercial data providers | Partly obtainable | Medium | Variable | Audience metrics may be account-bound or limited by privacy and platform terms. | Definitions vary: follower, listener, subscriber, fan, and engaged listener are not interchangeable. |
+| Territory-level consumption and engagement | User imports, distributor exports, commercial data providers | Partly obtainable | Medium | Medium | Granular geography may be restricted by platform, account access, privacy, or licensing. | Territory naming, minimum thresholds, and suppressed small-sample data can affect comparability. |
+| Campaign timing, spend, and channel evidence | User imports, advertising exports, marketing platforms, campaign management tools | Obtainable from customer-owned data | High when exported directly | Variable | Requires authorized access to campaign accounts and may include sensitive business information. | Campaign names, attribution windows, targeting definitions, and creative metadata are often inconsistent. |
+| Social engagement and follower growth | Social and short-form platforms, public APIs, user imports, commercial data providers | Partly obtainable | High for recent data | Often shallow or inconsistent | APIs and terms change frequently; some metrics may be restricted or unavailable. | Engagement metrics are platform-specific and susceptible to spikes, bot activity, and changing algorithms. |
+| Short-form content usage and trend evidence | Social and short-form platforms, commercial data providers, user imports | Uncertain or commercially gated | High for recent data | Often limited | Access, licensing, attribution, and rights constraints may be material. | Attribution from creator activity to music consumption can be noisy and incomplete. |
+| Chart positions and movement | Public chart publishers, commercial data providers, industry reports | Obtainable with caveats | Medium | Medium to deep | Methodology and reuse rights vary by chart owner or provider. | Charts are lagging indicators and may combine multiple activity types using opaque methodology. |
+| Revenue, royalty, and sales evidence | Distributor exports, royalty systems, accounting exports, user imports | Obtainable from authorized users | Low to medium | Medium to deep | Highly sensitive commercial data; access and retention policies must be explicit. | Reporting lag, currency, territory splits, deductions, and rights shares complicate interpretation. |
+| Press, radio, sync, and editorial coverage | Radio monitors, press databases, sync systems, user imports, commercial data providers | Partly obtainable | Low to medium | Variable | Many sources require paid licenses or manual verification. | Coverage quantity is not the same as impact; source quality and audience relevance matter. |
+| Comparable artist, track, campaign, or market context | Commercial data providers, public APIs, internal historical records | Exploratory | Variable | Variable | Comparable datasets may be licensed, incomplete, or commercially restricted. | Comparability requires careful normalization and safeguards against misleading benchmarks. |
+
+### Matrix principles
+
+- A source category being listed does not mean the evidence is available, licensed, complete, or affordable.
+- User-owned imports and distributor exports are likely the strongest near-term path for account-specific metrics.
+- Public APIs are useful but should not be assumed to expose every metric needed for reasoning.
+- Commercial providers may accelerate coverage, but SongTrace should evaluate them using evidence value, licensing clarity, freshness, historical depth, and provider-neutral fit.
+- Data-source uncertainty should be documented as missing or weak evidence rather than hidden behind confident conclusions.
+
 ## Provider-Neutral Architecture
 
 SongTrace should preserve a provider-neutral import boundary:

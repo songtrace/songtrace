@@ -16,6 +16,7 @@ from songtrace.providers import (
     SpotifyPlaylistSearchCandidate,
     SpotifyPlaylistTrackMembership,
     discover_spotify_playlist_track_memberships,
+    discover_spotify_playlist_track_memberships_for_queries,
 )
 from songtrace.providers.spotify_playlist_discovery import request_spotify_playlist_search
 
@@ -94,6 +95,77 @@ def test_discover_spotify_playlist_track_memberships_verifies_candidates_in_sear
     assert search_calls == [("SECRET_TOKEN", "Everything Is Fading", 2)]
     assert track_page_calls == [("SECRET_TOKEN", "playlist-one"), ("SECRET_TOKEN", "playlist-two")]
     assert "SECRET" not in str(result)
+
+
+def test_discover_spotify_playlist_track_memberships_for_queries_deduplicates_candidates() -> None:
+    search_calls: list[tuple[str, str, int]] = []
+    track_page_calls: list[tuple[str, str]] = []
+
+    def search_requester(access_token: str, query: str, limit: int) -> dict[str, object]:
+        search_calls.append((access_token, query, limit))
+        if query == "Everything Is Fading":
+            return {
+                "playlists": {
+                    "items": [
+                        {"id": "playlist-one", "name": "Everything Is Fading Radio"},
+                        {"id": "shared-playlist", "name": "Shared First Name"},
+                    ]
+                }
+            }
+        return {
+            "playlists": {
+                "items": [
+                    {"id": "shared-playlist", "name": "Shared Second Name"},
+                    {"id": "playlist-three", "name": "Warrel Dane Mix"},
+                ]
+            }
+        }
+
+    def track_pages_requester(access_token: str, playlist_id: str) -> tuple[dict[str, object], ...]:
+        track_page_calls.append((access_token, playlist_id))
+        if playlist_id in {"shared-playlist", "playlist-three"}:
+            return ({"items": [{"track": {"id": "target-track"}}], "next": None},)
+        return ({"items": [{"track": {"id": "other-track"}}], "next": None},)
+
+    result = discover_spotify_playlist_track_memberships_for_queries(
+        ("Everything Is Fading", "Warrel Dane", "Everything Is Fading"),
+        "target-track",
+        limit=5,
+        env={
+            SPOTIFY_CLIENT_ID_ENV: "client-id",
+            SPOTIFY_CLIENT_SECRET_ENV: "client-secret",
+        },
+        token_provider=lambda _client_id, _client_secret: "token",
+        playlist_search_requester=search_requester,
+        playlist_track_pages_requester=track_pages_requester,
+    )
+
+    assert result.queries == ("Everything Is Fading", "Warrel Dane")
+    assert result.query == "Everything Is Fading | Warrel Dane"
+    assert [candidate.spotify_playlist_id for candidate in result.candidates] == [
+        "playlist-one",
+        "shared-playlist",
+        "playlist-three",
+    ]
+    assert result.candidates[1].playlist_name == "Shared First Name"
+    assert [membership.spotify_playlist_id for membership in result.memberships] == [
+        "playlist-one",
+        "shared-playlist",
+        "playlist-three",
+    ]
+    assert [membership.spotify_playlist_id for membership in result.verified_memberships] == [
+        "shared-playlist",
+        "playlist-three",
+    ]
+    assert search_calls == [
+        ("token", "Everything Is Fading", 5),
+        ("token", "Warrel Dane", 5),
+    ]
+    assert track_page_calls == [
+        ("token", "playlist-one"),
+        ("token", "shared-playlist"),
+        ("token", "playlist-three"),
+    ]
 
 
 def test_discover_spotify_playlist_track_memberships_no_candidates() -> None:

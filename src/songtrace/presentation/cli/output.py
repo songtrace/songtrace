@@ -140,7 +140,12 @@ def print_spotify_playlist_discovery_text_result(
 ) -> None:
     console.print("[bold]SongTrace Spotify Playlist Discovery[/bold]")
     console.print()
-    console.print(f"Query: {result.query}")
+    if len(result.queries) == 1:
+        console.print(f"Query: {result.queries[0]}")
+    else:
+        console.print("Queries:")
+        for query in result.queries:
+            console.print(f"- {query}")
     console.print(f"Spotify track ID: {result.spotify_track_id}")
     console.print(f"Candidate playlists: {len(result.candidates)}")
     console.print(f"Verified placements: {len(result.verified_memberships)}")
@@ -170,6 +175,7 @@ def print_spotify_playlist_discovery_json_result(
             for membership in result.memberships
         ],
         "query": result.query,
+        "queries": list(result.queries),
         "spotify_track_id": result.spotify_track_id,
         "verified_placement_count": len(result.verified_memberships),
     }

@@ -41,7 +41,7 @@ from songtrace.presentation.cli.output import (
     print_validation_text_result,
 )
 from songtrace.providers import (
-    discover_spotify_playlist_track_memberships,
+    discover_spotify_playlist_track_memberships_for_queries,
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
@@ -191,9 +191,16 @@ def spotify_playlist_search_command(
             "--limit",
             min=1,
             max=50,
-            help="Maximum Spotify playlist search results to verify.",
+            help="Maximum Spotify playlist search results to verify per query.",
         ),
     ] = 20,
+    additional_queries: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--query",
+            help="Additional Spotify playlist search query. Repeat for multiple queries.",
+        ),
+    ] = None,
     output: Annotated[
         str,
         typer.Option(
@@ -206,8 +213,8 @@ def spotify_playlist_search_command(
 
     output_format = parse_output_format(output)
     try:
-        result = discover_spotify_playlist_track_memberships(
-            query,
+        result = discover_spotify_playlist_track_memberships_for_queries(
+            _spotify_playlist_search_queries(query, additional_queries),
             spotify_track_id,
             limit=limit,
         )
@@ -259,9 +266,16 @@ def export_spotify_playlist_search_placements_command(
             "--limit",
             min=1,
             max=50,
-            help="Maximum Spotify playlist search results to verify.",
+            help="Maximum Spotify playlist search results to verify per query.",
         ),
     ] = 20,
+    additional_queries: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--query",
+            help="Additional Spotify playlist search query. Repeat for multiple queries.",
+        ),
+    ] = None,
     track_artist: Annotated[
         str | None,
         typer.Option(
@@ -301,8 +315,8 @@ def export_spotify_playlist_search_placements_command(
     track = _parse_optional_export_track_identity(track_artist, track_title, track_isrc)
 
     try:
-        result = discover_spotify_playlist_track_memberships(
-            query,
+        result = discover_spotify_playlist_track_memberships_for_queries(
+            _spotify_playlist_search_queries(query, additional_queries),
             spotify_track_id,
             limit=limit,
         )
@@ -712,6 +726,13 @@ def investigate_playlist_platform_csv(
             print_investigation_text_result(evidence, observations, result.conclusions)
         case "json":
             print_investigation_json_result(evidence, observations, result.conclusions)
+
+
+def _spotify_playlist_search_queries(
+    query: str,
+    additional_queries: list[str] | None,
+) -> tuple[str, ...]:
+    return (query, *(additional_queries or []))
 
 
 def _parse_optional_export_track_identity(

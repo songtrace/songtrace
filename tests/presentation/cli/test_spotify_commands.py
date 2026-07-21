@@ -15,21 +15,39 @@ from tests.presentation.cli.fixtures import *
 
 
 def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    def discover(query: str, track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
-        assert query == "Everything Is Fading"
+    def discover(
+        queries: tuple[str, ...],
+        track_id: str,
+        *,
+        limit: int,
+    ) -> SpotifyPlaylistDiscoveryResult:
+        assert queries == ("Everything Is Fading", "Warrel Dane")
         assert track_id == "spotify-track-id"
         assert limit == 2
-        return _discovery_result()
+        return _multi_query_discovery_result()
 
-    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+    monkeypatch.setattr(
+        cli_main, "discover_spotify_playlist_track_memberships_for_queries", discover
+    )
 
     result = runner.invoke(
         app,
-        ["spotify-playlist-search", "Everything Is Fading", "spotify-track-id", "--limit", "2"],
+        [
+            "spotify-playlist-search",
+            "Everything Is Fading",
+            "spotify-track-id",
+            "--limit",
+            "2",
+            "--query",
+            "Warrel Dane",
+        ],
     )
 
     assert result.exit_code == 0
     assert "SongTrace Spotify Playlist Discovery" in result.stdout
+    assert "Queries:" in result.stdout
+    assert "- Everything Is Fading" in result.stdout
+    assert "- Warrel Dane" in result.stdout
     assert "Candidate playlists: 2" in result.stdout
     assert "Verified placements: 1" in result.stdout
     assert "contains track yes" in result.stdout
@@ -41,7 +59,7 @@ def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) ->
 def test_spotify_playlist_search_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         cli_main,
-        "discover_spotify_playlist_track_memberships",
+        "discover_spotify_playlist_track_memberships_for_queries",
         _discovery_result_from_args,
     )
 
@@ -71,6 +89,7 @@ def test_spotify_playlist_search_json_output(monkeypatch: pytest.MonkeyPatch) ->
             },
         ],
         "query": "Everything Is Fading",
+        "queries": ["Everything Is Fading"],
         "spotify_track_id": "spotify-track-id",
         "verified_placement_count": 1,
     }
@@ -79,10 +98,17 @@ def test_spotify_playlist_search_json_output(monkeypatch: pytest.MonkeyPatch) ->
 def test_spotify_playlist_search_failure_output_is_private_safe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def discover(_query: str, _track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
+    def discover(
+        _queries: tuple[str, ...],
+        _track_id: str,
+        *,
+        limit: int,
+    ) -> SpotifyPlaylistDiscoveryResult:
         raise ValueError("spotify_playlist_search_http_error_429")
 
-    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+    monkeypatch.setattr(
+        cli_main, "discover_spotify_playlist_track_memberships_for_queries", discover
+    )
 
     result = runner.invoke(
         app,
@@ -102,7 +128,7 @@ def test_export_spotify_playlist_search_placements_prints_json_stdout(
 ) -> None:
     monkeypatch.setattr(
         cli_main,
-        "discover_spotify_playlist_track_memberships",
+        "discover_spotify_playlist_track_memberships_for_queries",
         _discovery_result_from_args,
     )
 
@@ -154,7 +180,7 @@ def test_export_spotify_playlist_search_placements_writes_importable_json_file(
     output_file = tmp_path / "spotify-playlist-search-placements.json"
     monkeypatch.setattr(
         cli_main,
-        "discover_spotify_playlist_track_memberships",
+        "discover_spotify_playlist_track_memberships_for_queries",
         _discovery_result_from_args,
     )
 
@@ -184,13 +210,20 @@ def test_export_spotify_playlist_search_placements_writes_importable_json_file(
 def test_export_spotify_playlist_search_placements_rejects_incomplete_track_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[tuple[str, str, int]] = []
+    calls: list[tuple[tuple[str, ...], str, int]] = []
 
-    def discover(query: str, track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
-        calls.append((query, track_id, limit))
+    def discover(
+        queries: tuple[str, ...],
+        track_id: str,
+        *,
+        limit: int,
+    ) -> SpotifyPlaylistDiscoveryResult:
+        calls.append((queries, track_id, limit))
         return _discovery_result()
 
-    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+    monkeypatch.setattr(
+        cli_main, "discover_spotify_playlist_track_memberships_for_queries", discover
+    )
 
     result = runner.invoke(
         app,
@@ -214,7 +247,7 @@ def test_export_spotify_playlist_search_placements_allows_no_verified_results(
 ) -> None:
     monkeypatch.setattr(
         cli_main,
-        "discover_spotify_playlist_track_memberships",
+        "discover_spotify_playlist_track_memberships_for_queries",
         _empty_discovery_result_from_args,
     )
 
@@ -735,7 +768,7 @@ def test_spotify_track_lookup_failure_output_is_private_safe(
 
 
 def _discovery_result_from_args(
-    _query: str,
+    _queries: tuple[str, ...],
     _track_id: str,
     *,
     limit: int,
@@ -744,7 +777,7 @@ def _discovery_result_from_args(
 
 
 def _empty_discovery_result_from_args(
-    _query: str,
+    _queries: tuple[str, ...],
     _track_id: str,
     *,
     limit: int,
@@ -754,6 +787,16 @@ def _empty_discovery_result_from_args(
         spotify_track_id="spotify-track-id",
         candidates=(),
         memberships=(),
+    )
+
+
+def _multi_query_discovery_result() -> SpotifyPlaylistDiscoveryResult:
+    return SpotifyPlaylistDiscoveryResult(
+        query="Everything Is Fading | Warrel Dane",
+        queries=("Everything Is Fading", "Warrel Dane"),
+        spotify_track_id="spotify-track-id",
+        candidates=_discovery_result().candidates,
+        memberships=_discovery_result().memberships,
     )
 
 

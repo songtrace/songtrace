@@ -14,7 +14,16 @@ Search Spotify public playlists by query and verify whether a track is currently
 uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N --limit 20
 ```
 
-This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, then verifies current membership for each candidate in deterministic search-result order.
+Add repeated `--query` options to broaden candidate discovery while preserving deterministic order:
+
+```sh
+uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N \
+  --query "Warrel Dane" \
+  --query "Praises to the War Machine" \
+  --limit 20
+```
+
+This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, de-duplicates repeated playlist IDs in first-seen order, then verifies current membership for each candidate. `--limit` applies per query.
 
 For machine-readable output:
 
@@ -28,6 +37,8 @@ Search candidate Spotify playlists and export verified current placements as raw
 
 ```sh
 uv run songtrace export-spotify-playlist-search-placements "Everything Is Fading" 7zHxneKcojYp1eFkGO0e2N \
+  --query "Warrel Dane" \
+  --query "Praises to the War Machine" \
   --occurred-at 2026-07-21T12:00:00+00:00 \
   --track-artist "Warrel Dane" \
   --track-title "Everything Is Fading" \

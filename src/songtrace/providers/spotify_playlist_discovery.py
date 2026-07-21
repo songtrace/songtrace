@@ -54,18 +54,22 @@ class SpotifyPlaylistDiscoveryResult:
     spotify_track_id: str
     candidates: tuple[SpotifyPlaylistSearchCandidate, ...]
     memberships: tuple[SpotifyPlaylistTrackMembership, ...]
+    queries: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if not self.query.strip():
+        normalized_query = self.query.strip()
+        if not normalized_query:
             msg = "spotify_playlist_search_query_required"
             raise ValueError(msg)
         if not self.spotify_track_id.strip():
             msg = "spotify_track_id_required"
             raise ValueError(msg)
-        object.__setattr__(self, "query", self.query.strip())
+        normalized_queries = _normalize_queries(self.queries or (normalized_query,))
+        object.__setattr__(self, "query", normalized_query)
         object.__setattr__(self, "spotify_track_id", self.spotify_track_id.strip())
         object.__setattr__(self, "candidates", tuple(self.candidates))
         object.__setattr__(self, "memberships", tuple(self.memberships))
+        object.__setattr__(self, "queries", normalized_queries)
 
     @property
     def verified_memberships(self) -> tuple[SpotifyPlaylistTrackMembership, ...]:
@@ -86,11 +90,31 @@ def discover_spotify_playlist_track_memberships(
 ) -> SpotifyPlaylistDiscoveryResult:
     """Search Spotify playlists by query and verify current track membership."""
 
-    normalized_query = query.strip()
+    return discover_spotify_playlist_track_memberships_for_queries(
+        (query,),
+        spotify_track_id,
+        limit=limit,
+        env=env,
+        token_provider=token_provider,
+        playlist_search_requester=playlist_search_requester,
+        playlist_track_pages_requester=playlist_track_pages_requester,
+    )
+
+
+def discover_spotify_playlist_track_memberships_for_queries(
+    queries: tuple[str, ...],
+    spotify_track_id: str,
+    *,
+    limit: int = 20,
+    env: Mapping[str, str | None] | None = None,
+    token_provider: TokenProvider | None = None,
+    playlist_search_requester: PlaylistSearchRequester | None = None,
+    playlist_track_pages_requester: PlaylistTrackPagesRequester | None = None,
+) -> SpotifyPlaylistDiscoveryResult:
+    """Search Spotify playlists by multiple queries and verify current track membership."""
+
+    normalized_queries = _normalize_queries(queries)
     normalized_track_id = spotify_track_id.strip()
-    if not normalized_query:
-        msg = "spotify_playlist_search_query_required"
-        raise ValueError(msg)
     if not normalized_track_id:
         msg = "spotify_track_id_required"
         raise ValueError(msg)
@@ -111,8 +135,15 @@ def discover_spotify_playlist_track_memberships(
     )
 
     search_requester = playlist_search_requester or request_spotify_playlist_search
-    search_payload = search_requester(access_token, normalized_query, limit)
-    candidates = _playlist_search_candidates(search_payload)
+    candidates = _deduplicated_candidates(
+        tuple(
+            candidate
+            for query in normalized_queries
+            for candidate in _playlist_search_candidates(
+                search_requester(access_token, query, limit)
+            )
+        )
+    )
 
     pages_requester = playlist_track_pages_requester or request_spotify_playlist_track_pages
     memberships = tuple(
@@ -125,11 +156,43 @@ def discover_spotify_playlist_track_memberships(
     )
 
     return SpotifyPlaylistDiscoveryResult(
-        query=normalized_query,
+        query=" | ".join(normalized_queries),
+        queries=normalized_queries,
         spotify_track_id=normalized_track_id,
         candidates=candidates,
         memberships=memberships,
     )
+
+
+def _normalize_queries(queries: tuple[str, ...]) -> tuple[str, ...]:
+    normalized_queries: list[str] = []
+    seen: set[str] = set()
+    for query in queries:
+        normalized_query = query.strip()
+        if not normalized_query:
+            msg = "spotify_playlist_search_query_required"
+            raise ValueError(msg)
+        if normalized_query in seen:
+            continue
+        seen.add(normalized_query)
+        normalized_queries.append(normalized_query)
+    if not normalized_queries:
+        msg = "spotify_playlist_search_query_required"
+        raise ValueError(msg)
+    return tuple(normalized_queries)
+
+
+def _deduplicated_candidates(
+    candidates: tuple[SpotifyPlaylistSearchCandidate, ...],
+) -> tuple[SpotifyPlaylistSearchCandidate, ...]:
+    deduplicated: list[SpotifyPlaylistSearchCandidate] = []
+    seen_playlist_ids: set[str] = set()
+    for candidate in candidates:
+        if candidate.spotify_playlist_id in seen_playlist_ids:
+            continue
+        seen_playlist_ids.add(candidate.spotify_playlist_id)
+        deduplicated.append(candidate)
+    return tuple(deduplicated)
 
 
 def request_spotify_playlist_search(

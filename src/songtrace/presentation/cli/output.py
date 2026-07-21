@@ -10,6 +10,7 @@ from songtrace.providers import (
     AscapWorkSummary,
     SpotifyApiAccessStatus,
     SpotifyEnvironmentStatus,
+    SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
 )
 
@@ -129,6 +130,32 @@ def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None
         "failure_reason": status.failure_reason,
         "missing_variables": list(status.environment.missing_variables),
         "token_request_attempted": status.token_request_attempted,
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_playlist_membership_text_result(
+    membership: SpotifyPlaylistTrackMembership,
+) -> None:
+    console.print("[bold]SongTrace Spotify Playlist Track Lookup[/bold]")
+    console.print()
+    console.print(f"Spotify playlist ID: {membership.spotify_playlist_id}")
+    if membership.playlist_name is not None:
+        console.print(f"Playlist name: {membership.playlist_name}")
+    console.print(f"Spotify track ID: {membership.spotify_track_id}")
+    console.print(f"Contains track: {'yes' if membership.contains_track else 'no'}")
+    console.print(f"Matched track IDs: {len(membership.matched_track_ids)}")
+
+
+def print_spotify_playlist_membership_json_result(
+    membership: SpotifyPlaylistTrackMembership,
+) -> None:
+    payload = {
+        "contains_track": membership.contains_track,
+        "matched_track_ids": list(membership.matched_track_ids),
+        "playlist_name": membership.playlist_name,
+        "spotify_playlist_id": membership.spotify_playlist_id,
+        "spotify_track_id": membership.spotify_track_id,
     }
     print(json.dumps(payload, sort_keys=True))
 

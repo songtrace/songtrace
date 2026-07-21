@@ -31,12 +31,15 @@ from songtrace.presentation.cli.output import (
     print_spotify_api_access_text_status,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
+    print_spotify_playlist_membership_json_result,
+    print_spotify_playlist_membership_text_result,
     print_spotify_track_metadata_json_result,
     print_spotify_track_metadata_text_result,
     print_validation_json_result,
     print_validation_text_result,
 )
 from songtrace.providers import (
+    lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
     spotify_track_metadata_raw_records_to_json_text,
@@ -75,6 +78,43 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("spotify-playlist-track-lookup")
+def spotify_playlist_track_lookup_command(
+    spotify_playlist_id: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist ID to inspect."),
+    ],
+    spotify_track_id: Annotated[
+        str,
+        typer.Argument(help="Spotify track ID to find in the current playlist."),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Lookup whether a Spotify playlist currently contains a Spotify track."""
+
+    output_format = parse_output_format(output)
+    try:
+        membership = lookup_spotify_playlist_track_membership(
+            spotify_playlist_id,
+            spotify_track_id,
+        )
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_playlist_membership_text_result(membership)
+        case "json":
+            print_spotify_playlist_membership_json_result(membership)
 
 
 @app.command("export-spotify-track-metadata")

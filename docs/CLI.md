@@ -6,6 +6,22 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `spotify-playlist-track-lookup`
+
+Check whether a known Spotify playlist currently contains a known Spotify track.
+
+```sh
+uv run songtrace spotify-playlist-track-lookup 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N
+```
+
+This is a provider-facing validation probe. It inspects current playlist membership only. It does not create playlist-placement evidence, import evidence, infer historical placement, or attribute a stream spike to the playlist.
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-playlist-track-lookup 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N --output json
+```
+
 ### `export-spotify-track-metadata`
 
 Look up Spotify track metadata and export it as a JSON array compatible with the existing raw evidence import boundary.

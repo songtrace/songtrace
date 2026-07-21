@@ -21,10 +21,11 @@ from songtrace.providers import AscapCsvRawEvidenceSource
 
 
 def load_and_import_evidence(
-    evidence_file: Path,
+    evidence_files: tuple[Path, ...],
 ) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
     try:
-        raw_records = load_raw_records(evidence_file)
+        raw_record_groups = [load_raw_records(evidence_file) for evidence_file in evidence_files]
+        raw_records = tuple(record for group in raw_record_groups for record in group)
         evidence = EvidenceImporter().import_records(raw_records)
     except EvidenceImportError as error:
         exit_with_import_error(error)

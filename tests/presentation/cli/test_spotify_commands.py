@@ -8,6 +8,7 @@ from songtrace.presentation.cli import main as cli_main
 from songtrace.providers import (
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
+    SpotifyPlaylistSkippedCandidate,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
 )
@@ -48,10 +49,13 @@ def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) ->
     assert "Queries:" in result.stdout
     assert "- Everything Is Fading" in result.stdout
     assert "- Warrel Dane" in result.stdout
-    assert "Candidate playlists: 2" in result.stdout
+    assert "Candidate playlists: 3" in result.stdout
+    assert "Skipped candidates: 1" in result.stdout
     assert "Verified placements: 1" in result.stdout
     assert "contains track yes" in result.stdout
     assert "contains track no" in result.stdout
+    assert "Skipped playlists:" in result.stdout
+    assert "spotify_playlist_tracks_http_error_403" in result.stdout
     assert "SECRET" not in result.stdout
     assert "access_token" not in result.stdout
 
@@ -90,6 +94,8 @@ def test_spotify_playlist_search_json_output(monkeypatch: pytest.MonkeyPatch) ->
         ],
         "query": "Everything Is Fading",
         "queries": ["Everything Is Fading"],
+        "skipped_candidate_count": 0,
+        "skipped_candidates": [],
         "spotify_track_id": "spotify-track-id",
         "verified_placement_count": 1,
     }
@@ -795,8 +801,21 @@ def _multi_query_discovery_result() -> SpotifyPlaylistDiscoveryResult:
         query="Everything Is Fading | Warrel Dane",
         queries=("Everything Is Fading", "Warrel Dane"),
         spotify_track_id="spotify-track-id",
-        candidates=_discovery_result().candidates,
+        candidates=(
+            *_discovery_result().candidates,
+            SpotifyPlaylistSearchCandidate(
+                spotify_playlist_id="inaccessible-playlist",
+                playlist_name="Inaccessible Playlist",
+            ),
+        ),
         memberships=_discovery_result().memberships,
+        skipped_candidates=(
+            SpotifyPlaylistSkippedCandidate(
+                spotify_playlist_id="inaccessible-playlist",
+                playlist_name="Inaccessible Playlist",
+                reason="spotify_playlist_tracks_http_error_403",
+            ),
+        ),
     )
 
 

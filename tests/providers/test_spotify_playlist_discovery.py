@@ -14,6 +14,7 @@ from songtrace.providers import (
     SPOTIFY_CLIENT_SECRET_ENV,
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
+    SpotifyPlaylistSkippedCandidate,
     SpotifyPlaylistTrackMembership,
     discover_spotify_playlist_track_memberships,
     discover_spotify_playlist_track_memberships_for_queries,
@@ -166,6 +167,51 @@ def test_discover_spotify_playlist_track_memberships_for_queries_deduplicates_ca
         ("token", "shared-playlist"),
         ("token", "playlist-three"),
     ]
+
+
+def test_discover_spotify_playlist_track_memberships_skips_inaccessible_candidates() -> None:
+    track_page_calls: list[tuple[str, str]] = []
+
+    def track_pages_requester(access_token: str, playlist_id: str) -> tuple[dict[str, object], ...]:
+        track_page_calls.append((access_token, playlist_id))
+        if playlist_id == "inaccessible-playlist":
+            raise ValueError("spotify_playlist_tracks_http_error_403")
+        return ({"items": [{"track": {"id": "target-track"}}], "next": None},)
+
+    result = discover_spotify_playlist_track_memberships(
+        "Everything Is Fading",
+        "target-track",
+        env={
+            SPOTIFY_CLIENT_ID_ENV: "client-id",
+            SPOTIFY_CLIENT_SECRET_ENV: "client-secret",
+        },
+        token_provider=lambda _client_id, _client_secret: "token",
+        playlist_search_requester=lambda _access_token, _query, _limit: {
+            "playlists": {
+                "items": [
+                    {"id": "inaccessible-playlist", "name": "Private Candidate"},
+                    {"id": "verified-playlist", "name": "Verified Candidate"},
+                ]
+            }
+        },
+        playlist_track_pages_requester=track_pages_requester,
+    )
+
+    assert [membership.spotify_playlist_id for membership in result.memberships] == [
+        "verified-playlist"
+    ]
+    assert result.skipped_candidates == (
+        SpotifyPlaylistSkippedCandidate(
+            spotify_playlist_id="inaccessible-playlist",
+            playlist_name="Private Candidate",
+            reason="spotify_playlist_tracks_http_error_403",
+        ),
+    )
+    assert track_page_calls == [
+        ("token", "inaccessible-playlist"),
+        ("token", "verified-playlist"),
+    ]
+    assert "SECRET" not in str(result)
 
 
 def test_discover_spotify_playlist_track_memberships_no_candidates() -> None:

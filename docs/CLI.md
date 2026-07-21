@@ -65,6 +65,47 @@ uv run songtrace validate-evidence examples/simple_investigation_evidence.json \
 
 The source name is import metadata. It should not introduce provider-specific behavior into the reasoning model.
 
+### `validate-playlist-placement-csv`
+
+Validate a local provider-neutral playlist placement CSV file through the import boundary.
+
+```sh
+uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-placements.csv
+```
+
+This command uses:
+
+```text
+PlaylistPlacementCsvRawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
+```
+
+It does not extract observations, evaluate rules, produce conclusions, enrich playlist metadata, or contact external APIs.
+
+The CSV shape is intentionally narrow:
+
+```csv
+id,source_name,summary,occurred_at,observed_at,reference
+```
+
+`id`, `source_name`, `summary`, `occurred_at`, and `reference` are required. `observed_at` is optional. Datetimes must be timezone-aware ISO datetimes.
+
+For machine-readable validation output:
+
+```sh
+uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-placements.csv --output json
+```
+
+The command supports the same validation metadata options as `validate-evidence`:
+
+```sh
+uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-placements.csv \
+  --source-name local_playlist_fixture \
+  --batch-id 00000000-0000-0000-0000-000000000901 \
+  --imported-at 2026-07-21T12:00:00+00:00
+```
+
+Use this command when you have local playlist placement evidence that should normalize to `playlist_activity` with `playlist_placement`. The generic `validate-evidence` command still treats `.csv` files as generic raw evidence CSVs and does not auto-detect this specialized shape.
+
 ### `investigate-ascap-csv-layout-a`
 
 Run the current deterministic investigation pipeline for a private local ASCAP CSV file using the profiled 41-column layout A.
@@ -197,6 +238,8 @@ The generic `validate-evidence` and `investigate-evidence` commands select the r
 | `.xlsx` | `XlsxRawEvidenceSource` |
 
 These are generic local file sources, not provider-specific connectors.
+
+Specialized local source commands, such as `validate-playlist-placement-csv`, are invoked explicitly. Generic `.csv` commands do not infer specialized CSV shapes from filenames or headers.
 
 Unsupported extensions fail clearly before import.
 

@@ -21,6 +21,14 @@ _COLUMNS = (
     "reference",
     "signals",
 )
+_PLAYLIST_PLACEMENT_COLUMNS = (
+    "id",
+    "source_name",
+    "summary",
+    "occurred_at",
+    "observed_at",
+    "reference",
+)
 _ASCAP_LAYOUT_A_COLUMNS = (
     "DistributionYear",
     "Distribution Quarter",
@@ -532,6 +540,147 @@ def test_validate_evidence_json_success(tmp_path: Path) -> None:
     ]
 
 
+def test_validate_playlist_placement_csv_text_success(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    _write_playlist_placement_csv(
+        path,
+        [
+            _playlist_placement_row(id="00000000-0000-0000-0000-000000000301"),
+            _playlist_placement_row(id="00000000-0000-0000-0000-000000000302"),
+        ],
+    )
+
+    result = runner.invoke(app, ["validate-playlist-placement-csv", str(path)])
+
+    assert result.exit_code == 0
+    assert "SongTrace Evidence Validation" in result.stdout
+    assert "Source name: local_playlist_placement_file" in result.stdout
+    assert "Raw records: 2" in result.stdout
+    assert "Evidence: 2" in result.stdout
+    assert "00000000-0000-0000-0000-000000000301" in result.stdout
+    assert "00000000-0000-0000-0000-000000000302" in result.stdout
+
+
+def test_validate_playlist_placement_csv_json_success(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    _write_playlist_placement_csv(
+        path,
+        [
+            _playlist_placement_row(id="00000000-0000-0000-0000-000000000301"),
+            _playlist_placement_row(id="00000000-0000-0000-0000-000000000302"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "validate-playlist-placement-csv",
+            str(path),
+            "--output",
+            "json",
+            "--source-name",
+            "local_playlist_fixture",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["source_name"] == "local_playlist_fixture"
+    assert payload["raw_record_count"] == 2
+    assert payload["evidence_count"] == 2
+    assert payload["evidence_ids"] == [
+        "00000000-0000-0000-0000-000000000301",
+        "00000000-0000-0000-0000-000000000302",
+    ]
+
+
+def test_validate_playlist_placement_csv_uses_deterministic_metadata(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    _write_playlist_placement_csv(path, [_playlist_placement_row()])
+
+    result = runner.invoke(
+        app,
+        [
+            "validate-playlist-placement-csv",
+            str(path),
+            "--batch-id",
+            "00000000-0000-0000-0000-000000000901",
+            "--imported-at",
+            "2026-07-21T12:00:00+00:00",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Batch ID: 00000000-0000-0000-0000-000000000901" in result.stdout
+    assert "Imported at: 2026-07-21T12:00:00+00:00" in result.stdout
+
+
+def test_validate_playlist_placement_csv_reports_source_failure(tmp_path: Path) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    _write_playlist_placement_csv(
+        path,
+        [_playlist_placement_row(occurred_at="2026-07-18T12:00:00")],
+    )
+
+    result = runner.invoke(app, ["validate-playlist-placement-csv", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "field 'occurred_at' must be timezone-aware" in output
+    assert "Traceback" not in output
+
+
+def test_validate_playlist_placement_csv_reports_import_validation_failure(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "playlist-placements.csv"
+    duplicate_id = "00000000-0000-0000-0000-000000000301"
+    _write_playlist_placement_csv(
+        path,
+        [
+            _playlist_placement_row(id=duplicate_id),
+            _playlist_placement_row(id=duplicate_id, reference="playlist-placement:synthetic:2"),
+        ],
+    )
+
+    result = runner.invoke(app, ["validate-playlist-placement-csv", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence import failed." in output
+    assert "Rejected record index: 1" in output
+    assert "Accepted record count: 1" in output
+    assert f"duplicate evidence id: {duplicate_id}" in output
+    assert "Traceback" not in output
+
+
+def test_validate_playlist_placement_csv_success_output_is_privacy_safe(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "secret-playlist-placements.csv"
+    _write_playlist_placement_csv(
+        path,
+        [
+            _playlist_placement_row(
+                summary="SECRET_PLAYLIST_NAME drove private engagement.",
+                reference="SECRET_REFERENCE",
+            )
+        ],
+    )
+
+    result = runner.invoke(app, ["validate-playlist-placement-csv", str(path)])
+
+    assert result.exit_code == 0
+    assert "Raw records: 1" in result.stdout
+    assert "Evidence: 1" in result.stdout
+    assert "SECRET_PLAYLIST_NAME" not in result.stdout
+    assert "SECRET_REFERENCE" not in result.stdout
+    assert "secret-playlist-placements" not in result.stdout
+
+
 def test_validate_evidence_text_uses_deterministic_metadata(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write_json(path, _matching_records())
@@ -910,6 +1059,10 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
     _write_table(path, _COLUMNS, rows)
 
 
+def _write_playlist_placement_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    _write_table(path, _PLAYLIST_PLACEMENT_COLUMNS, rows)
+
+
 def _write_table(path: Path, columns: tuple[str, ...], rows: list[dict[str, str]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
@@ -1120,6 +1273,25 @@ def _royalty_row() -> dict[str, str]:
         reference="royalty-statement:synthetic:2026-q2",
         signals="royalty_reported",
     )
+
+
+def _playlist_placement_row(
+    *,
+    id: str = "00000000-0000-0000-0000-000000000301",
+    source_name: str = "local_playlist_export",
+    summary: str = "Synthetic playlist placement was reported.",
+    occurred_at: str = "2026-07-18T12:00:00+00:00",
+    observed_at: str = "",
+    reference: str = "playlist-placement:synthetic:1",
+) -> dict[str, str]:
+    return {
+        "id": id,
+        "source_name": source_name,
+        "summary": summary,
+        "occurred_at": occurred_at,
+        "observed_at": observed_at,
+        "reference": reference,
+    }
 
 
 def _row(

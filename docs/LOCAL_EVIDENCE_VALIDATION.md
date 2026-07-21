@@ -256,6 +256,24 @@ uv run songtrace investigate-ascap-csv-layout-a .songtrace-private/ascap/4227844
 
 These sources are intentionally not a general ASCAP connector. They do not support PDF statements, reconciliation, APIs, OAuth, or persistence.
 
+## ASCAP work-level summaries
+
+Use `summarize-ascap-work` to safely inspect aggregate ASCAP activity for a specific work across supported private local CSV statements:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>"
+```
+
+The command can also match by a case-insensitive work title query for local exploratory use:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-title "Everything Is Fading"
+```
+
+The output is intentionally aggregate-only. It reports counts for scanned files, matched files, matched rows, statement types, distribution periods/dates, territories/countries, and revenue classes. It does not print the work ID, work title, filenames, account identifiers, party names, writer names, royalty amounts, or row values.
+
+This command helps identify what evidence exists for a real work before expanding the domain model. It does not create `RawEvidenceRecord`, domain `Evidence`, observations, conclusions, or recommendations.
+
 ## API-backed sources are later
 
 Local file validation should happen before live API integrations.

@@ -114,6 +114,30 @@ It does not emit royalty amounts, work titles, party names, account IDs, writer 
 
 This is a local validation helper for understanding ASCAP CSV layouts. It is not an ASCAP connector and does not produce `RawEvidenceRecord` or domain `Evidence`.
 
+### `summarize-ascap-work`
+
+Summarize private ASCAP CSV rows for a specific work across supported local ASCAP CSV layouts without exposing row-level values.
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>"
+```
+
+You can also match by a case-insensitive title query:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-title "Everything Is Fading"
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --output json
+```
+
+The command emits aggregate counts only, including scanned files, matched files, matched rows, statement-type counts, distinct distribution periods/dates, distinct territories/countries, and distinct revenue classes. It does not print work titles, work IDs, account IDs, party names, writer names, royalty amounts, filenames, or row values.
+
+This is a private local analysis helper. It does not normalize rows into `RawEvidenceRecord`, create domain `Evidence`, run investigations, parse PDFs, reconcile statements, or generate conclusions.
+
 ### `investigate-evidence`
 
 Run the current deterministic investigation pipeline for a local raw evidence file.

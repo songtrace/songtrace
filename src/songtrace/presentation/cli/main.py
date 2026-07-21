@@ -23,7 +23,12 @@ from songtrace.application import (
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
-from songtrace.providers import AscapCsvRawEvidenceSource, profile_ascap_csv_layout
+from songtrace.providers import (
+    AscapCsvRawEvidenceSource,
+    AscapWorkSummary,
+    profile_ascap_csv_layout,
+    summarize_ascap_work,
+)
 
 app = typer.Typer(
     name="songtrace",
@@ -166,6 +171,64 @@ def profile_ascap_csv_layout_command(
         raise typer.Exit(1) from error
 
     print(profile.to_json())
+
+
+@app.command("summarize-ascap-work")
+def summarize_ascap_work_command(
+    paths: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            readable=True,
+            help="One or more ASCAP CSV files or directories containing ASCAP CSV files.",
+        ),
+    ],
+    work_id: Annotated[
+        str | None,
+        typer.Option(
+            "--work-id",
+            help=(
+                "Exact ASCAP work ID to summarize. The value is used for matching but not printed."
+            ),
+        ),
+    ] = None,
+    work_title: Annotated[
+        str | None,
+        typer.Option(
+            "--work-title",
+            help=(
+                "Case-insensitive work title query. The value is used for matching but not printed."
+            ),
+        ),
+    ] = None,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Summarize private ASCAP CSV rows for one work without exposing row values."""
+
+    output_format = _parse_output_format(output)
+    try:
+        summary = summarize_ascap_work(
+            tuple(paths),
+            work_id=work_id,
+            work_title_query=work_title,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            _print_ascap_work_summary_text_result(summary)
+        case "json":
+            print(summary.to_json())
 
 
 @app.command("validate-evidence")
@@ -373,6 +436,23 @@ def _print_json_result(
         ],
     }
     print(json.dumps(payload, sort_keys=True))
+
+
+def _print_ascap_work_summary_text_result(summary: AscapWorkSummary) -> None:
+    console.print("[bold]SongTrace ASCAP Work Summary[/bold]")
+    console.print()
+    console.print(f"Scanned files: {summary.scanned_file_count}")
+    console.print(f"Matched files: {summary.matched_file_count}")
+    console.print(f"Matched rows: {summary.matched_row_count}")
+    console.print(f"Distribution periods/dates: {summary.distribution_period_count}")
+    console.print(f"Territories/countries: {summary.territory_count}")
+    console.print(f"Revenue classes: {summary.revenue_class_count}")
+    console.print("Statement types:")
+    if summary.statement_type_counts:
+        for statement_type, count in summary.statement_type_counts:
+            console.print(f"- {statement_type}: {count}")
+    else:
+        console.print("- none: 0")
 
 
 def _print_validation_text_result(

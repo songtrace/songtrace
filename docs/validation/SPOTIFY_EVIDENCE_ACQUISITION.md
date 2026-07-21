@@ -62,6 +62,14 @@ uv run songtrace export-spotify-track-metadata 0abc123exampleTrackId \
 
 The exported record is identity metadata evidence only. It can anchor cross-provider matching through artist, title, ISRC, and Spotify track reference, but it must not be treated as evidence of engagement, playlist placement, source attribution, or commercial impact.
 
+To check whether a known Spotify playlist currently contains a known Spotify track, use:
+
+```sh
+uv run songtrace spotify-playlist-track-lookup 37i9dQZF1DX0XUsuxWHRQd 7zHxneKcojYp1eFkGO0e2N
+```
+
+This is a current-state probe only. It can help validate accessible playlist data and future playlist evidence acquisition, but it does not prove historical placement, identify when a track was added, or explain why a spike occurred.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.

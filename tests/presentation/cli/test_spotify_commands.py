@@ -5,8 +5,87 @@ import pytest
 
 from songtrace.application import EvidenceImporter, JsonRawEvidenceSource
 from songtrace.presentation.cli import main as cli_main
-from songtrace.providers import SpotifyTrackMetadata
+from songtrace.providers import SpotifyPlaylistTrackMembership, SpotifyTrackMetadata
 from tests.presentation.cli.fixtures import *
+
+
+def test_spotify_playlist_track_lookup_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def lookup(playlist_id: str, track_id: str) -> SpotifyPlaylistTrackMembership:
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id=playlist_id,
+            playlist_name="Metal Essentials",
+            spotify_track_id=track_id,
+            contains_track=True,
+            matched_track_ids=(track_id,),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-track-lookup", "playlist-id", "spotify-track-id"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify Playlist Track Lookup" in result.stdout
+    assert "Spotify playlist ID: playlist-id" in result.stdout
+    assert "Playlist name: Metal Essentials" in result.stdout
+    assert "Spotify track ID: spotify-track-id" in result.stdout
+    assert "Contains track: yes" in result.stdout
+    assert "Matched track IDs: 1" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_track_lookup_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def lookup(_playlist_id: str, _track_id: str) -> SpotifyPlaylistTrackMembership:
+        return SpotifyPlaylistTrackMembership(
+            spotify_playlist_id="playlist-id",
+            playlist_name="Metal Essentials",
+            spotify_track_id="spotify-track-id",
+            contains_track=False,
+            matched_track_ids=(),
+        )
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-track-lookup", "playlist-id", "spotify-track-id", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "contains_track": False,
+        "matched_track_ids": [],
+        "playlist_name": "Metal Essentials",
+        "spotify_playlist_id": "playlist-id",
+        "spotify_track_id": "spotify-track-id",
+    }
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_track_lookup_failure_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def lookup(_playlist_id: str, _track_id: str) -> SpotifyPlaylistTrackMembership:
+        raise ValueError("spotify_playlist_http_error_404")
+
+    monkeypatch.setattr(cli_main, "lookup_spotify_playlist_track_membership", lookup)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-track-lookup", "playlist-id", "spotify-track-id"],
+    )
+
+    assert result.exit_code == 1
+    assert "spotify_playlist_http_error_404" in result.stderr
+    assert "SECRET_CLIENT_ID" not in result.stderr
+    assert "SECRET_CLIENT_SECRET" not in result.stderr
+    assert "SECRET_TOKEN" not in result.stderr
+    assert "access_token" not in result.stderr
 
 
 def test_export_spotify_track_metadata_prints_json_stdout(

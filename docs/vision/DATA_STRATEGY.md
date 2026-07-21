@@ -515,6 +515,77 @@ SongTrace should not adopt a source when:
 - Treat commercial provider relationships as accelerators, not dependencies.
 - Do not implement a connector until the evidence value, access model, licensing, and architecture fit are clear.
 
+## Initial Data Feasibility Study
+
+This feasibility study summarizes which evidence appears practical for SongTrace's near-term investigation stage, which evidence likely requires future connectors or commercial access, and which evidence should be treated as uncertain or unavailable until validated.
+
+The study is intentionally conservative. It should guide product planning without creating implementation commitments or provider-specific dependencies.
+
+### Near-term feasible evidence
+
+| Evidence area | Feasibility | Likely path | Notes |
+| --- | --- | --- | --- |
+| Playlist placement evidence | High | JSON/CSV imports now; future playlist or platform connectors | Already represented by current evidence kinds and signals. Better historical completeness may require provider or playlist-specific sources later. |
+| Stream-growth evidence | High | User imports, distributor exports, platform analytics exports, future connectors | Supported by current deterministic investigation flow when normalized into provider-neutral evidence. Account-specific access may be more realistic than public APIs. |
+| Save-growth evidence | Medium to high | User imports, platform analytics exports, future connectors | Valuable for distinguishing passive exposure from stronger listener engagement. Availability varies by platform and export access. |
+| Source name and record reference | High | Current raw evidence records and import sources | Sufficient for first traceability needs, though richer provenance will be needed before multi-provider reconciliation. |
+| Event and observation timestamps | High | Current raw evidence records and importer fallback behavior | Existing `occurred_at` and `observed_at` semantics support deterministic imports and freshness reasoning. |
+| CSV and JSON file imports | High | Existing raw evidence file sources | These are strong near-term BYOD mechanisms and good validation paths for normalized evidence. |
+
+### Feasible with future connector work
+
+| Evidence area | Feasibility | Likely path | Notes |
+| --- | --- | --- | --- |
+| Distributor analytics and royalty exports | Medium | Evidence Connectors for CSV, XLSX, statements, and distributor-specific exports | Valuable for account-specific evidence, but schemas vary and may include sensitive financial data. |
+| Rights organization statements | Medium | Future Evidence Connectors for statement formats supplied by authorized users | CSV and PDF statement formats can validate whether different representations normalize into the same provider-neutral evidence. Private local examples should be used for architecture validation, but statement files must not be committed to the repository. |
+| Campaign timing and spend | Medium | User imports, ad-platform exports, internal systems, future connectors | Important for avoiding over-attribution to organic or playlist activity. Requires clear attribution windows and privacy handling. |
+| Territory-level performance | Medium | Distributor exports, platform analytics exports, commercial providers | Useful for market opportunity work. Granularity and privacy thresholds may limit confidence. |
+| Chart movement | Medium | Public chart sources, licensed providers, user imports | Useful as external validation, but methodology and licensing must be evaluated source by source. |
+| Commercial provider intelligence | Medium | Future provider connectors or partnerships | May accelerate playlist, social, chart, comparable, and market data coverage. Should remain an accelerator rather than a required dependency. |
+
+### Uncertain, expensive, restricted, or deferred evidence
+
+| Evidence area | Status | Reason to defer or validate |
+| --- | --- | --- |
+| Short-form trend and creator usage evidence | Unknown | Potentially high value, but API access, attribution, licensing, and history are uncertain. |
+| Comparable artist, track, campaign, and market benchmarks | Unknown | Requires sufficient normalized data, clear rights, and safeguards against misleading comparisons. |
+| Listener intent beyond observable behavior | Unavailable | SongTrace can reason from proxies such as saves, follows, repeats, purchases, and engagement, but should not claim direct knowledge of motivation. |
+| Provider-internal recommendation algorithms | Unavailable | Platforms generally do not expose internal recommendation causes. SongTrace should reason from observable evidence only. |
+| Causal certainty for growth drivers | Unavailable | SongTrace can support hypotheses with confidence and alternatives, but should not claim proof of causation from correlation. |
+| Fully automated AI recommendations | Deferred | AI should wait until deterministic evidence, observation, conclusion, and confidence layers are mature. |
+
+### Private validation fixtures
+
+Real-world files supplied by users or maintainers can be valuable for validating future Evidence Connector architecture, especially when the same source exists in multiple formats such as CSV and PDF.
+
+Private local fixtures should be used to answer architectural questions such as:
+
+- Can two formats of the same statement normalize into the same provider-neutral evidence?
+- Can the importer preserve provenance for every imported fact?
+- Can deterministic tests verify ordering, timestamps, reconciliation, and confidence behavior?
+- Can sensitive financial or royalty evidence remain local and outside the repository?
+
+These files should not be committed to the repository unless they are explicitly cleared, anonymized, licensed for inclusion, and reviewed for privacy. The existence of a private fixture should guide connector design only when implementation work begins; it should not cause SongTrace to introduce ASCAP-specific or provider-specific abstractions prematurely.
+
+### Feasibility principles
+
+- Start with evidence that supports current deterministic investigation behavior.
+- Prefer source formats users can legally provide through BYOD workflows.
+- Treat private real-world files as local validation inputs, not repository fixtures.
+- Use future connectors to normalize external records, not to bypass the domain model.
+- Preserve provenance, deterministic ordering, and exact traceability before expanding conclusions.
+- Defer provider-specific abstractions until a concrete connector implementation needs them.
+- Document missing, unknown, or unavailable evidence rather than filling gaps with speculation.
+
+### Prioritized follow-up questions
+
+1. Which evidence gaps block the next deterministic investigation rules?
+2. Which BYOD file formats are most common among likely early users?
+3. Which statement, export, or report formats can validate evidence normalization without committing private data?
+4. What provenance metadata is required before reconciling multiple representations of the same statement or report?
+5. Which provider integrations would strengthen required evidence rather than only exploratory evidence?
+6. Which evidence types are sensitive enough to require security, retention, or audit policies before ingestion?
+
 ## Data Strategy Outcome
 
 SongTrace should be able to answer:

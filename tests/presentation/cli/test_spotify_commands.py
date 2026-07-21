@@ -5,8 +5,232 @@ import pytest
 
 from songtrace.application import EvidenceImporter, JsonRawEvidenceSource
 from songtrace.presentation.cli import main as cli_main
-from songtrace.providers import SpotifyPlaylistTrackMembership, SpotifyTrackMetadata
+from songtrace.providers import (
+    SpotifyPlaylistDiscoveryResult,
+    SpotifyPlaylistSearchCandidate,
+    SpotifyPlaylistTrackMembership,
+    SpotifyTrackMetadata,
+)
 from tests.presentation.cli.fixtures import *
+
+
+def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def discover(query: str, track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
+        assert query == "Everything Is Fading"
+        assert track_id == "spotify-track-id"
+        assert limit == 2
+        return _discovery_result()
+
+    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-search", "Everything Is Fading", "spotify-track-id", "--limit", "2"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify Playlist Discovery" in result.stdout
+    assert "Candidate playlists: 2" in result.stdout
+    assert "Verified placements: 1" in result.stdout
+    assert "contains track yes" in result.stdout
+    assert "contains track no" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_search_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "discover_spotify_playlist_track_memberships",
+        _discovery_result_from_args,
+    )
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-search", "Everything Is Fading", "spotify-track-id", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "candidate_count": 2,
+        "memberships": [
+            {
+                "contains_track": True,
+                "matched_track_ids": ["spotify-track-id"],
+                "playlist_name": "Everything Is Fading Radio",
+                "spotify_playlist_id": "playlist-one",
+                "spotify_track_id": "spotify-track-id",
+            },
+            {
+                "contains_track": False,
+                "matched_track_ids": [],
+                "playlist_name": "Dark Metal",
+                "spotify_playlist_id": "playlist-two",
+                "spotify_track_id": "spotify-track-id",
+            },
+        ],
+        "query": "Everything Is Fading",
+        "spotify_track_id": "spotify-track-id",
+        "verified_placement_count": 1,
+    }
+
+
+def test_spotify_playlist_search_failure_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def discover(_query: str, _track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
+        raise ValueError("spotify_playlist_search_http_error_429")
+
+    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-search", "Everything Is Fading", "spotify-track-id"],
+    )
+
+    assert result.exit_code == 1
+    assert "spotify_playlist_search_http_error_429" in result.stderr
+    assert "SECRET_CLIENT_ID" not in result.stderr
+    assert "SECRET_CLIENT_SECRET" not in result.stderr
+    assert "SECRET_TOKEN" not in result.stderr
+    assert "access_token" not in result.stderr
+
+
+def test_export_spotify_playlist_search_placements_prints_json_stdout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "discover_spotify_playlist_track_memberships",
+        _discovery_result_from_args,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-search-placements",
+            "Everything Is Fading",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--observed-at",
+            "2026-07-21T12:05:00+00:00",
+            "--track-artist",
+            "Warrel Dane",
+            "--track-title",
+            "Everything Is Fading",
+            "--track-isrc",
+            "GBDHC2120401",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == [
+        {
+            "id": "a12acb89-be69-553c-89f6-f7ee1731cf0b",
+            "kind": "playlist_activity",
+            "occurred_at": "2026-07-21T12:00:00+00:00",
+            "observed_at": "2026-07-21T12:05:00+00:00",
+            "reference": "spotify:playlist:playlist-one:track:spotify-track-id",
+            "signals": ["playlist_placement"],
+            "source_name": "spotify",
+            "summary": (
+                "Spotify current playlist membership observed track spotify-track-id "
+                "in playlist Everything Is Fading Radio."
+            ),
+            "track_artist": "Warrel Dane",
+            "track_isrc": "GBDHC2120401",
+            "track_title": "Everything Is Fading",
+        }
+    ]
+
+
+def test_export_spotify_playlist_search_placements_writes_importable_json_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output_file = tmp_path / "spotify-playlist-search-placements.json"
+    monkeypatch.setattr(
+        cli_main,
+        "discover_spotify_playlist_track_memberships",
+        _discovery_result_from_args,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-search-placements",
+            "Everything Is Fading",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--output-file",
+            str(output_file),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout == ""
+    raw_records = JsonRawEvidenceSource(output_file).load()
+    evidence = EvidenceImporter(clock=lambda: datetime(2026, 7, 21, 13, tzinfo=UTC)).import_records(
+        raw_records
+    )
+    assert len(evidence) == 1
+    assert evidence[0].reference == "spotify:playlist:playlist-one:track:spotify-track-id"
+
+
+def test_export_spotify_playlist_search_placements_rejects_incomplete_track_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, str, int]] = []
+
+    def discover(query: str, track_id: str, *, limit: int) -> SpotifyPlaylistDiscoveryResult:
+        calls.append((query, track_id, limit))
+        return _discovery_result()
+
+    monkeypatch.setattr(cli_main, "discover_spotify_playlist_track_memberships", discover)
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-search-placements",
+            "Everything Is Fading",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+            "--track-artist",
+            "Warrel Dane",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert calls == []
+
+
+def test_export_spotify_playlist_search_placements_allows_no_verified_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_main,
+        "discover_spotify_playlist_track_memberships",
+        _empty_discovery_result_from_args,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "export-spotify-playlist-search-placements",
+            "Everything Is Fading",
+            "spotify-track-id",
+            "--occurred-at",
+            "2026-07-21T12:00:00+00:00",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert json.loads(result.stdout) == []
 
 
 def test_export_spotify_playlist_placement_prints_json_stdout(
@@ -508,3 +732,59 @@ def test_spotify_track_lookup_failure_output_is_private_safe(
     assert "SECRET_CLIENT_SECRET" not in result.stderr
     assert "SECRET_TOKEN" not in result.stderr
     assert "access_token" not in result.stderr
+
+
+def _discovery_result_from_args(
+    _query: str,
+    _track_id: str,
+    *,
+    limit: int,
+) -> SpotifyPlaylistDiscoveryResult:
+    return _discovery_result()
+
+
+def _empty_discovery_result_from_args(
+    _query: str,
+    _track_id: str,
+    *,
+    limit: int,
+) -> SpotifyPlaylistDiscoveryResult:
+    return SpotifyPlaylistDiscoveryResult(
+        query="Everything Is Fading",
+        spotify_track_id="spotify-track-id",
+        candidates=(),
+        memberships=(),
+    )
+
+
+def _discovery_result() -> SpotifyPlaylistDiscoveryResult:
+    return SpotifyPlaylistDiscoveryResult(
+        query="Everything Is Fading",
+        spotify_track_id="spotify-track-id",
+        candidates=(
+            SpotifyPlaylistSearchCandidate(
+                spotify_playlist_id="playlist-one",
+                playlist_name="Everything Is Fading Radio",
+            ),
+            SpotifyPlaylistSearchCandidate(
+                spotify_playlist_id="playlist-two",
+                playlist_name="Dark Metal",
+            ),
+        ),
+        memberships=(
+            SpotifyPlaylistTrackMembership(
+                spotify_playlist_id="playlist-one",
+                playlist_name="Everything Is Fading Radio",
+                spotify_track_id="spotify-track-id",
+                contains_track=True,
+                matched_track_ids=("spotify-track-id",),
+            ),
+            SpotifyPlaylistTrackMembership(
+                spotify_playlist_id="playlist-two",
+                playlist_name="Dark Metal",
+                spotify_track_id="spotify-track-id",
+                contains_track=False,
+                matched_track_ids=(),
+            ),
+        ),
+    )

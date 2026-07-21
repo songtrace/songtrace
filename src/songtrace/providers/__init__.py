@@ -25,6 +25,11 @@ from songtrace.providers.spotify_environment import (
     SpotifyEnvironmentStatus,
     validate_spotify_environment,
 )
+from songtrace.providers.spotify_playlist_discovery import (
+    SpotifyPlaylistDiscoveryResult,
+    SpotifyPlaylistSearchCandidate,
+    discover_spotify_playlist_track_memberships,
+)
 from songtrace.providers.spotify_playlist_membership import (
     SpotifyPlaylistTrackMembership,
     lookup_spotify_playlist_track_membership,
@@ -56,8 +61,11 @@ __all__ = [
     "AscapWorkSummary",
     "SpotifyApiAccessStatus",
     "SpotifyEnvironmentStatus",
+    "SpotifyPlaylistDiscoveryResult",
+    "SpotifyPlaylistSearchCandidate",
     "SpotifyPlaylistTrackMembership",
     "SpotifyTrackMetadata",
+    "discover_spotify_playlist_track_memberships",
     "lookup_spotify_playlist_track_membership",
     "lookup_spotify_track_metadata",
     "profile_ascap_csv_layout",

@@ -79,11 +79,14 @@ The data-source matrix maps provider-neutral evidence needs to likely source cat
 | Source category | Description |
 | --- | --- |
 | Public APIs | Platform APIs or public endpoints with documented access, rate limits, and terms. |
+| OAuth APIs | User-authorized platform, provider, distributor, or tool APIs that require delegated access. |
 | User imports | Files or manual uploads supplied by artists, managers, labels, publishers, or other authorized users. |
 | Distributor exports | Reports exported from distributors, label services, royalty platforms, or accounting systems. |
 | Commercial data providers | Licensed third-party platforms that aggregate music, playlist, social, chart, audience, or market data. |
+| Rights and royalty organizations | PRO, neighboring-rights, royalty, and collection-society statements or exports. |
 | Social and short-form platforms | Native platform data from social, creator, video, and short-form services. |
 | Playlist and editorial data | Playlist placement, curator, editorial, algorithmic, and playlist-metadata sources. |
+| Internal systems | Label, publisher, management, marketing, accounting, CRM, or proprietary analytics systems. |
 | Radio, touring, sync, and press sources | Specialized sources for non-streaming exposure, live activity, licensing, publicity, and media coverage. |
 
 ### Initial data-source matrix
@@ -111,8 +114,76 @@ The data-source matrix maps provider-neutral evidence needs to likely source cat
 - A source category being listed does not mean the evidence is available, licensed, complete, or affordable.
 - User-owned imports and distributor exports are likely the strongest near-term path for account-specific metrics.
 - Public APIs are useful but should not be assumed to expose every metric needed for reasoning.
+- OAuth APIs and provider subscriptions can expand access, but they should enter through Evidence Connectors and normalized evidence boundaries.
 - Commercial providers may accelerate coverage, but SongTrace should evaluate them using evidence value, licensing clarity, freshness, historical depth, and provider-neutral fit.
 - Data-source uncertainty should be documented as missing or weak evidence rather than hidden behind confident conclusions.
+
+## Connected Music Ecosystem
+
+SongTrace should not attempt to replace the music intelligence providers, artist tools, distributor portals, rights organizations, analytics products, and internal systems that users already rely on.
+
+Instead, SongTrace should become the evidence-driven intelligence layer above the existing music technology ecosystem. Users should be able to connect the services, subscriptions, exports, statements, reports, and internal records they already have permission to access.
+
+Examples of potential ecosystem participants include:
+
+- Spotify for Artists
+- Apple Music for Artists
+- YouTube Studio
+- TikTok
+- ASCAP, BMI, SESAC, PRS, SoundExchange, and other rights or royalty organizations
+- Chartmetric, Soundcharts, Songstats, Luminate, and future commercial intelligence providers
+- DistroKid, TuneCore, CD Baby, Symphonic, FUGA, and other distributors or label services
+- internal label, publisher, management, marketing, royalty, and accounting systems
+- CSV exports, XLSX reports, PDF reports, royalty statements, email attachments, and manual uploads
+- future providers not yet identified
+
+The objective is not to become another analytics provider. The objective is to unify authorized evidence from many sources into a provider-neutral evidence platform that can produce explainable understanding.
+
+## Bring Your Own Data
+
+SongTrace should follow a Bring Your Own Data philosophy.
+
+Users and organizations already maintain relationships with platforms, distributors, PROs, neighboring-rights organizations, analytics vendors, marketing tools, and internal systems. SongTrace should encourage users to connect those existing sources rather than requiring them to replace them.
+
+BYOD reinforces provider neutrality:
+
+- users decide which sources they are authorized to connect
+- evidence from free, paid, commercial, and internal sources can coexist
+- SongTrace can compare and combine evidence without becoming dependent on one vendor
+- missing or unavailable sources can be represented explicitly instead of hidden
+- conclusions remain traceable to the evidence the user supplied or connected
+
+## Evidence Connectors
+
+Evidence Connectors are future integration boundaries that load external records and normalize them into SongTrace evidence.
+
+Each connector should describe:
+
+- provider or source name
+- authentication method, if any
+- supported ingestion methods
+- evidence types produced
+- freshness characteristics
+- confidence or reliability characteristics
+- licensing, access, or usage constraints that affect evidence handling
+
+Connectors may understand provider-specific formats, APIs, files, reports, or schemas, but they must not expose provider-specific objects directly into the domain model. Their output should flow through the same provider-neutral import boundary used by the current raw file sources.
+
+## Supported Ingestion Mechanisms
+
+SongTrace should support multiple ingestion mechanisms over time, including:
+
+- REST APIs
+- OAuth APIs
+- CSV imports
+- Excel imports
+- PDF reports
+- email attachments
+- manual uploads
+- webhooks
+- future integrations
+
+The reasoning engine must remain completely unaware of how evidence entered the system. Whether evidence originated from an OAuth API, a CSV export, a royalty statement, or a manual upload, observation extraction and investigation rules should operate only on normalized domain evidence.
 
 ## Provider-Neutral Architecture
 
@@ -125,6 +196,20 @@ RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
 Raw sources may have provider-specific formats, but the reasoning engine should consume validated domain evidence. Provider-specific schemas should not leak into observation extraction, rule evaluation, conclusions, or recommendations.
 
 This keeps the reasoning engine independent from any single vendor or data source.
+
+### Evidence normalization
+
+Evidence normalization converts provider-specific source records into SongTrace's domain language.
+
+Normalization should:
+
+- translate provider-specific fields into provider-neutral evidence kinds, signals, timestamps, source references, and summaries
+- preserve provenance back to the original source record or report
+- avoid embedding provider objects or API responses in domain entities
+- keep source-specific parsing in connector or source modules
+- produce validated `Evidence` before the reasoning engine evaluates observations or conclusions
+
+The current `RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence` boundary is the first form of this normalization pipeline. Future Evidence Connectors should extend that pattern rather than bypassing it.
 
 ## Evidence Lifecycle
 
@@ -378,7 +463,7 @@ Potential sources include:
 - Songstats
 - Luminate
 
-Provider adoption should be driven by evidence value, not vendor enthusiasm alone.
+Provider adoption should be driven by evidence value, not vendor enthusiasm alone. A future connector should be justified by the evidence it can normalize, the source permissions users can realistically provide, and the conclusions or recommendations that evidence can support.
 
 ## Data Strategy Outcome
 

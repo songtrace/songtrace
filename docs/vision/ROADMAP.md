@@ -77,7 +77,7 @@ AI should reason only over structured SongTrace evidence, observations, conclusi
 
 ## Major GitHub Epics
 
-SongTrace's long-term work is organized into six major epics:
+SongTrace's long-term work is organized into major epics:
 
 1. **Evidence and Data Strategy**
    - Defines what evidence SongTrace needs, where it can come from, and which conclusions are possible with available data.
@@ -85,16 +85,20 @@ SongTrace's long-term work is organized into six major epics:
 2. **Data Source Integration Platform**
    - Builds provider-neutral ingestion for public APIs, commercial providers, user uploads, and future sources.
 
-3. **Intelligence and Reasoning Engine**
+3. **Connected Music Ecosystem**
+   - Enables users to unify evidence from the tools, services, subscriptions, exports, reports, and internal systems they already use into a single provider-neutral evidence platform.
+   - The objective is not to become another analytics provider. The objective is to become the evidence-driven intelligence layer above the existing music technology ecosystem.
+
+4. **Intelligence and Reasoning Engine**
    - Expands deterministic reasoning into richer observations, hypotheses, conclusions, and explanation models.
 
-4. **Market Opportunity Engine**
+5. **Market Opportunity Engine**
    - Identifies evidence-backed opportunities across artists, tracks, catalogs, territories, audiences, platforms, and campaigns.
 
-5. **Explainable AI Advisor**
+6. **Explainable AI Advisor**
    - Uses AI to synthesize structured SongTrace evidence into explanations, hypotheses, questions, and strategic options.
 
-6. **Commercialization and Industry Partnerships**
+7. **Commercialization and Industry Partnerships**
    - Defines target users, provider partnerships, commercial tiers, and a sustainable path for the product.
 
 ## Near-Term Development Philosophy
@@ -117,9 +121,13 @@ Near-term implementation should continue strengthening the current pipeline:
 RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence -> ObservationExtractor -> SimpleInvestigator -> Conclusion
 ```
 
+Connected ecosystem work should wait until the current import boundary and evidence model are strong enough to support additional connectors without weakening Clean Architecture, DDD boundaries, provider neutrality, deterministic behavior, or explainability.
+
 ## Long-Term Product Direction
 
 Long term, SongTrace should become a trusted reasoning layer above fragmented music data sources.
+
+Users should be able to bring their own data from platforms, providers, distributors, rights organizations, internal systems, file exports, and future sources. SongTrace should normalize that evidence into a common domain model and reason over it without coupling the intelligence layer to the source mechanism.
 
 The product should help users:
 
@@ -130,4 +138,4 @@ The product should help users:
 - surface evidence-backed opportunities
 - make better strategic decisions
 
-SongTrace should not compete by being the largest data warehouse. It should compete by making evidence understandable, explainable, and actionable.
+SongTrace should not compete by being the largest data warehouse or by replacing every provider. It should compete by making connected evidence understandable, explainable, and actionable.

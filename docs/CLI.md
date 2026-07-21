@@ -152,7 +152,22 @@ uv run songtrace investigate-playlist-platform-csv \
   --output json
 ```
 
-Use this command for local attribution experiments where you have known playlist placement evidence and platform stream/save growth evidence. It does not enrich playlist metadata, search Spotify, perform historical playlist lookup, contact APIs, infer missing placements, or generate recommendations.
+Use this command for local attribution experiments where you have known playlist placement evidence and platform stream/save growth evidence.
+
+To focus a multi-track local file set on one explicit track identity, provide an exact track filter:
+
+```sh
+uv run songtrace investigate-playlist-platform-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/platform-activity.csv \
+  --track-artist "Warrel Dane" \
+  --track-title "Everything Is Fading" \
+  --track-isrc "USABC0800001"
+```
+
+If any track filter option is supplied, `--track-artist` and `--track-title` are required. `--track-isrc` is optional, but when supplied it participates in exact matching. Evidence without track identity is excluded when a track filter is active. Successful text and JSON output remain privacy-safe and do not print track identity by default.
+
+It does not enrich playlist metadata, search Spotify, perform historical playlist lookup, contact APIs, infer missing placements, or generate recommendations.
 
 ### `investigate-playlist-placement-csv`
 

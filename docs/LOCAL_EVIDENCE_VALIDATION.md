@@ -145,6 +145,18 @@ uv run songtrace investigate-playlist-platform-csv \
   /absolute/path/to/local/private/platform-activity.csv
 ```
 
+For multi-track files, focus on one explicit track identity with an exact filter:
+
+```sh
+uv run songtrace investigate-playlist-platform-csv \
+  /absolute/path/to/local/private/playlist-placements.csv \
+  /absolute/path/to/local/private/platform-activity.csv \
+  --track-artist "Warrel Dane" \
+  --track-title "Everything Is Fading"
+```
+
+When a track filter is active, evidence without track identity is excluded because SongTrace cannot prove it belongs to the requested track. Add `--track-isrc` when the local evidence includes ISRC and exact ISRC matching is desired.
+
 ## Smoke-test workflow
 
 Start by validating that a local file can cross the import boundary:

@@ -28,6 +28,9 @@ _PLAYLIST_PLACEMENT_COLUMNS = (
     "occurred_at",
     "observed_at",
     "reference",
+    "track_artist",
+    "track_title",
+    "track_isrc",
 )
 _PLATFORM_ACTIVITY_COLUMNS = (
     "id",
@@ -37,6 +40,9 @@ _PLATFORM_ACTIVITY_COLUMNS = (
     "observed_at",
     "reference",
     "signal",
+    "track_artist",
+    "track_title",
+    "track_isrc",
 )
 _ASCAP_LAYOUT_A_COLUMNS = (
     "DistributionYear",
@@ -387,6 +393,9 @@ def _platform_activity_row(
     observed_at: str = "",
     reference: str = "platform-activity:synthetic:1",
     signal: str = "stream_growth",
+    track_artist: str = "",
+    track_title: str = "",
+    track_isrc: str = "",
 ) -> dict[str, str]:
     return {
         "id": id,
@@ -396,6 +405,9 @@ def _platform_activity_row(
         "observed_at": observed_at,
         "reference": reference,
         "signal": signal,
+        "track_artist": track_artist,
+        "track_title": track_title,
+        "track_isrc": track_isrc,
     }
 
 
@@ -407,6 +419,9 @@ def _playlist_placement_row(
     occurred_at: str = "2026-07-18T12:00:00+00:00",
     observed_at: str = "",
     reference: str = "playlist-placement:synthetic:1",
+    track_artist: str = "",
+    track_title: str = "",
+    track_isrc: str = "",
 ) -> dict[str, str]:
     return {
         "id": id,
@@ -415,6 +430,9 @@ def _playlist_placement_row(
         "occurred_at": occurred_at,
         "observed_at": observed_at,
         "reference": reference,
+        "track_artist": track_artist,
+        "track_title": track_title,
+        "track_isrc": track_isrc,
     }
 
 

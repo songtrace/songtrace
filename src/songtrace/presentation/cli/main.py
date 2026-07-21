@@ -5,6 +5,8 @@ import typer
 
 from songtrace import __version__
 from songtrace.application import InvestigationService, ObservationExtractor, SimpleInvestigator
+from songtrace.domain.evidence import Evidence
+from songtrace.domain.track import TrackIdentity
 from songtrace.presentation.cli.errors import print_source_error
 from songtrace.presentation.cli.loading import (
     load_and_import_ascap_layout_a_evidence,
@@ -194,6 +196,27 @@ def investigate_playlist_platform_csv(
             help="Output format: text or json.",
         ),
     ] = "text",
+    track_artist: Annotated[
+        str | None,
+        typer.Option(
+            "--track-artist",
+            help="Optional exact track artist filter.",
+        ),
+    ] = None,
+    track_title: Annotated[
+        str | None,
+        typer.Option(
+            "--track-title",
+            help="Optional exact track title filter.",
+        ),
+    ] = None,
+    track_isrc: Annotated[
+        str | None,
+        typer.Option(
+            "--track-isrc",
+            help="Optional exact track ISRC filter.",
+        ),
+    ] = None,
 ) -> None:
     """Investigate playlist placement evidence with platform activity CSV evidence."""
 
@@ -204,10 +227,13 @@ def investigate_playlist_platform_csv(
         )
 
     output_format = parse_output_format(output)
+    track_filter = _parse_track_filter(track_artist, track_title, track_isrc)
     _raw_records, evidence = load_and_import_playlist_platform_csv_investigation_evidence(
         playlist_file,
         tuple(platform_files),
     )
+    if track_filter is not None:
+        evidence = _filter_evidence_by_track(evidence, track_filter)
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 
@@ -216,6 +242,41 @@ def investigate_playlist_platform_csv(
             print_investigation_text_result(evidence, observations, result.conclusions)
         case "json":
             print_investigation_json_result(evidence, observations, result.conclusions)
+
+
+def _parse_track_filter(
+    artist: str | None,
+    title: str | None,
+    isrc: str | None,
+) -> TrackIdentity | None:
+    artist = _normalize_optional_text(artist)
+    title = _normalize_optional_text(title)
+    isrc = _normalize_optional_text(isrc)
+
+    if artist is None and title is None and isrc is None:
+        return None
+
+    if artist is None or title is None:
+        raise typer.BadParameter(
+            "track filtering requires both --track-artist and --track-title",
+            param_hint="--track-artist/--track-title",
+        )
+
+    return TrackIdentity(artist=artist, title=title, isrc=isrc)
+
+
+def _normalize_optional_text(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+
+    return value.strip()
+
+
+def _filter_evidence_by_track(
+    evidence: tuple[Evidence, ...],
+    track: TrackIdentity,
+) -> tuple[Evidence, ...]:
+    return tuple(item for item in evidence if item.track == track)
 
 
 @app.command("investigate-ascap-csv-layout-a")

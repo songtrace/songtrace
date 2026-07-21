@@ -116,6 +116,59 @@ def investigate_evidence(
             _print_json_result(evidence, observations, result.conclusions)
 
 
+@app.command("investigate-playlist-placement-csv")
+def investigate_playlist_placement_csv(
+    playlist_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to a provider-neutral playlist placement CSV file.",
+        ),
+    ],
+    evidence_files: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="One or more supplemental JSON, CSV, or XLSX raw evidence files.",
+        ),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Investigate playlist placement evidence with supplemental raw evidence."""
+
+    if not evidence_files:
+        raise typer.BadParameter(
+            "at least one supplemental evidence file is required",
+            param_hint="evidence_files",
+        )
+
+    output_format = _parse_output_format(output)
+    _raw_records, evidence = _load_and_import_playlist_placement_investigation_evidence(
+        playlist_file,
+        tuple(evidence_files),
+    )
+    observations = ObservationExtractor().extract(evidence)
+    result = SimpleInvestigator().investigate(observations)
+
+    match output_format:
+        case "text":
+            _print_text_result(evidence, observations, result.conclusions)
+        case "json":
+            _print_json_result(evidence, observations, result.conclusions)
+
+
 @app.command("investigate-ascap-csv-layout-a")
 def investigate_ascap_csv_layout_a(
     csv_file: Annotated[
@@ -396,6 +449,27 @@ def _load_and_import_ascap_layout_a_evidence(
 ) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
     try:
         raw_records = AscapCsvRawEvidenceSource(csv_file).load()
+        evidence = EvidenceImporter().import_records(raw_records)
+    except EvidenceImportError as error:
+        _print_import_error(error)
+        raise typer.Exit(1) from error
+    except (FileNotFoundError, ValueError) as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    return raw_records, evidence
+
+
+def _load_and_import_playlist_placement_investigation_evidence(
+    playlist_file: Path,
+    evidence_files: tuple[Path, ...],
+) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
+    try:
+        raw_record_groups = [PlaylistPlacementCsvRawEvidenceSource(playlist_file).load()]
+        raw_record_groups.extend(
+            _load_raw_records(evidence_file) for evidence_file in evidence_files
+        )
+        raw_records = tuple(record for group in raw_record_groups for record in group)
         evidence = EvidenceImporter().import_records(raw_records)
     except EvidenceImportError as error:
         _print_import_error(error)

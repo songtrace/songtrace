@@ -106,6 +106,38 @@ uv run songtrace validate-playlist-placement-csv /absolute/path/to/playlist-plac
 
 Use this command when you have local playlist placement evidence that should normalize to `playlist_activity` with `playlist_placement`. The generic `validate-evidence` command still treats `.csv` files as generic raw evidence CSVs and does not auto-detect this specialized shape.
 
+### `investigate-playlist-placement-csv`
+
+Run the deterministic investigation pipeline using one local playlist placement CSV file plus one or more supplemental generic raw evidence files.
+
+```sh
+uv run songtrace investigate-playlist-placement-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/audience-evidence.json
+```
+
+This command uses:
+
+```text
+PlaylistPlacementCsvRawEvidenceSource -> RawEvidenceRecord
+Generic RawEvidenceSource -> RawEvidenceRecord
+RawEvidenceRecord -> EvidenceImporter -> Evidence
+Evidence -> ObservationExtractor -> Observation -> SimpleInvestigator -> Conclusion
+```
+
+Records are combined deterministically: playlist placement records first, followed by supplemental evidence files in argument order, preserving each file's source order.
+
+For machine-readable output:
+
+```sh
+uv run songtrace investigate-playlist-placement-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/audience-evidence.json \
+  --output json
+```
+
+Use this command to test whether known local playlist placement evidence can explain stream/save evidence through the existing rule catalog. It does not enrich playlist metadata, search Spotify, perform historical playlist lookup, contact APIs, infer missing placements, or generate recommendations.
+
 ### `investigate-ascap-csv-layout-a`
 
 Run the current deterministic investigation pipeline for a private local ASCAP CSV file using the profiled 41-column layout A.

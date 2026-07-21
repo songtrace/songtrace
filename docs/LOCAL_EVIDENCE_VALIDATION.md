@@ -322,6 +322,18 @@ This validation command prints import batch metadata, raw/evidence counts, and e
 
 The generic `validate-evidence` and `investigate-evidence` commands do not auto-detect playlist placement CSVs by `.csv` extension. Use `validate-playlist-placement-csv` for this specialized local shape.
 
+After validation succeeds, combine playlist placement evidence with supplemental stream/save evidence using:
+
+```sh
+uv run songtrace investigate-playlist-placement-csv \
+  /absolute/path/to/playlist-placements.csv \
+  /absolute/path/to/audience-evidence.json
+```
+
+The supplemental files use the existing generic JSON, CSV, and XLSX raw evidence shapes. This command runs the current deterministic observation and investigation logic unchanged. It can produce the existing playlist engagement conclusion when playlist placement evidence is paired with stream-growth and save-growth evidence.
+
+Use this as a local compatibility check before adding API-backed playlist sources. It cannot discover playlists, recover historical playlist membership, or identify a missing source of engagement by itself.
+
 ## API-backed sources are later
 
 Local file validation should happen before live API integrations.

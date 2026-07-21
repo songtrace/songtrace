@@ -95,7 +95,23 @@ Generic raw evidence files may include:
 
 ## Smoke-test workflow
 
-Use the existing source that matches the file shape you want to validate:
+Use the CLI to run the current deterministic pipeline against a local raw evidence file:
+
+```sh
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv
+```
+
+The command supports the existing generic raw evidence source formats:
+
+```sh
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.json
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.csv
+uv run songtrace investigate-evidence /absolute/path/to/local/private/evidence.xlsx
+```
+
+It loads raw records, imports validated domain evidence, extracts observations, runs the deterministic investigator, and prints evidence, observation, and conclusion counts.
+
+For deeper debugging, use the existing source that matches the file shape you want to validate:
 
 ```python
 from datetime import UTC, datetime
@@ -128,7 +144,7 @@ print(f"observations: {len(observations)}")
 print(f"conclusions: {len(result.conclusions)}")
 ```
 
-This verifies the current deterministic pipeline without adding a provider connector.
+Both workflows verify the current deterministic pipeline without adding a provider connector.
 
 ## Interpreting failures
 

@@ -219,8 +219,111 @@ def test_summarize_ascap_work_json_output_is_private_safe(tmp_path: Path) -> Non
         "statement_type_counts": {"domestic": 1},
         "territory_count": 0,
     }
+    assert "breakdowns" not in payload
     assert "SECRET_WORK_TITLE" not in result.stdout
     assert "SECRET_WORK_ID" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_text_breakdowns_are_opt_in(tmp_path: Path) -> None:
+    domestic = tmp_path / "domestic.csv"
+    international = tmp_path / "international.csv"
+    _write_table(domestic, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+    _write_table(
+        international,
+        _ASCAP_INTERNATIONAL_INCOMING_COLUMNS,
+        [_ascap_international_incoming_row()],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-work",
+            str(domestic),
+            str(international),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-breakdowns",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Distribution periods/dates" in result.stdout
+    assert "- 01-31-2026: 1" in result.stdout
+    assert "- 2Q2026: 1" in result.stdout
+    assert "Territories/countries" in result.stdout
+    assert "- SECRET_COUNTRY: 1" in result.stdout
+    assert "Revenue classes" in result.stdout
+    assert "- Performance: 1" in result.stdout
+    assert "- SECRET_DESCRIPTION: 1" in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_default_text_omits_breakdown_labels(tmp_path: Path) -> None:
+    path = tmp_path / "international.csv"
+    _write_table(
+        path,
+        _ASCAP_INTERNATIONAL_INCOMING_COLUMNS,
+        [_ascap_international_incoming_row()],
+    )
+
+    result = runner.invoke(app, ["summarize-ascap-work", str(path), "--work-id", "SECRET_WORK_ID"])
+
+    assert result.exit_code == 0
+    assert "Distribution periods/dates: 1" in result.stdout
+    assert "Territories/countries: 1" in result.stdout
+    assert "Revenue classes: 1" in result.stdout
+    assert "01-31-2026" not in result.stdout
+    assert "SECRET_COUNTRY" not in result.stdout
+    assert "SECRET_DESCRIPTION" not in result.stdout
+
+
+def test_summarize_ascap_work_json_breakdowns_are_deterministic(tmp_path: Path) -> None:
+    path = tmp_path / "international.csv"
+    _write_table(
+        path,
+        _ASCAP_INTERNATIONAL_INCOMING_COLUMNS,
+        [
+            _ascap_international_incoming_row(
+                distribution_date="02-28-2026",
+                country="ZZ_COUNTRY",
+                revenue_class_description="ZZ_DESCRIPTION",
+            ),
+            _ascap_international_incoming_row(
+                distribution_date="01-31-2026",
+                country="AA_COUNTRY",
+                revenue_class_description="AA_DESCRIPTION",
+            ),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-work",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-breakdowns",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["breakdowns"] == {
+        "distribution_periods": {"01-31-2026": 1, "02-28-2026": 1},
+        "revenue_classes": {"AA_DESCRIPTION": 1, "ZZ_DESCRIPTION": 1},
+        "statement_types": {"international_incoming": 2},
+        "territories": {"AA_COUNTRY": 1, "ZZ_COUNTRY": 1},
+    }
+    assert result.stdout.index("01-31-2026") < result.stdout.index("02-28-2026")
+    assert result.stdout.index("AA_COUNTRY") < result.stdout.index("ZZ_COUNTRY")
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
     assert "123.45" not in result.stdout
 
 
@@ -835,7 +938,12 @@ def _record(
     return record
 
 
-def _ascap_layout_a_row(*, work_id: str = "SECRET_WORK_ID") -> dict[str, str]:
+def _ascap_layout_a_row(
+    *,
+    work_id: str = "SECRET_WORK_ID",
+    performance_quarter: str = "2Q2026",
+    performance_type: str = "Performance",
+) -> dict[str, str]:
     return {
         "DistributionYear": "2026",
         "Distribution Quarter": "2",
@@ -849,10 +957,10 @@ def _ascap_layout_a_row(*, work_id: str = "SECRET_WORK_ID") -> dict[str, str]:
         "Work ID": work_id,
         "Work Title": "SECRET_WORK_TITLE",
         "Number of Plays": "10",
-        "Performance Type (Usage)": "Performance",
+        "Performance Type (Usage)": performance_type,
         "Credits": "1.23",
         "Dollars": "123.45",
-        "Performance Quarter": "2Q2026",
+        "Performance Quarter": performance_quarter,
     }
 
 
@@ -868,21 +976,27 @@ def _ascap_layout_b_row() -> dict[str, str]:
     }
 
 
-def _ascap_international_incoming_row(*, work_id: str = "SECRET_WORK_ID") -> dict[str, str]:
+def _ascap_international_incoming_row(
+    *,
+    work_id: str = "SECRET_WORK_ID",
+    distribution_date: str = "01-31-2026",
+    country: str = "SECRET_COUNTRY",
+    revenue_class_description: str = "SECRET_DESCRIPTION",
+) -> dict[str, str]:
     return {
         "File Type": "Royalty",
         "Statement Recipient Name": "SECRET_RECIPIENT",
         "Statement Recipient ID": "SECRET_RECIPIENT_ID",
         "Party Name": "SECRET_PARTY",
         "Party ID": "SECRET_PARTY_ID",
-        "Distribution Date": "01-31-2026",
-        "Country Name": "SECRET_COUNTRY",
+        "Distribution Date": distribution_date,
+        "Country Name": country,
         "Performance Start Date": "01-01-2026",
         "Performance End Date": "01-31-2026",
         "Work Title": "SECRET_WORK_TITLE",
         "Work ID": work_id,
         "Revenue Class Code": "SECRET_CODE",
-        "Revenue Class Description": "SECRET_DESCRIPTION",
+        "Revenue Class Description": revenue_class_description,
         "$ Amount": "123.45",
         "Role Type": "Writer",
         "Type Of Right": "Performance",

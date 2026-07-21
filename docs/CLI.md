@@ -134,7 +134,15 @@ For machine-readable output:
 uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --output json
 ```
 
-The command emits aggregate counts only, including scanned files, matched files, matched rows, statement-type counts, distinct distribution periods/dates, distinct territories/countries, and distinct revenue classes. It does not print work titles, work IDs, account IDs, party names, writer names, royalty amounts, filenames, or row values.
+By default, the command emits aggregate counts only, including scanned files, matched files, matched rows, statement-type counts, distinct distribution periods/dates, distinct territories/countries, and distinct revenue classes. It does not print work titles, work IDs, account IDs, party names, writer names, royalty amounts, filenames, or row values.
+
+For local-only exploratory analysis, opt in to aggregate breakdown labels and counts:
+
+```sh
+uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --include-breakdowns
+```
+
+Breakdowns may include distribution periods/dates, territories/countries, revenue classes, and statement types. They still do not include row-level values, royalty amounts, account IDs, party names, writer names, work IDs, work titles, filenames, or source row numbers.
 
 This is a private local analysis helper. It does not normalize rows into `RawEvidenceRecord`, create domain `Evidence`, run investigations, parse PDFs, reconcile statements, or generate conclusions.
 

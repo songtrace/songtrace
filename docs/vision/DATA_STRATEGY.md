@@ -433,18 +433,7 @@ Derived evidence should be treated as a first-class reasoning input only when it
 
 ## Future Provider Integrations
 
-Future provider integrations should be evaluated on:
-
-- coverage
-- freshness
-- historical depth
-- reliability
-- licensing terms
-- cost
-- rate limits
-- exportability
-- privacy expectations
-- commercial viability
+Future provider integrations should be evaluated with a repeatable rubric before SongTrace commits to a connector, partnership, or product dependency.
 
 Potential sources include:
 
@@ -464,6 +453,67 @@ Potential sources include:
 - Luminate
 
 Provider adoption should be driven by evidence value, not vendor enthusiasm alone. A future connector should be justified by the evidence it can normalize, the source permissions users can realistically provide, and the conclusions or recommendations that evidence can support.
+
+### Provider-evaluation rubric
+
+The rubric should apply to public APIs, OAuth APIs, commercial providers, distributor exports, user imports, internal systems, and future sources. It should support qualitative assessment as well as simple scoring.
+
+| Dimension | Evaluation questions | Why it matters |
+| --- | --- | --- |
+| Evidence coverage | Which evidence catalog items can this source provide? Are they required, optional, future, or exploratory? | A source is valuable only if it supplies evidence that improves observations, conclusions, confidence, or future recommendations. |
+| Authorization model | Can users legally and practically connect this source? Does it require OAuth, API keys, file exports, manual uploads, contract access, or internal permissions? | SongTrace's Bring Your Own Data model depends on evidence users are authorized to supply or connect. |
+| Data quality | Are identifiers stable? Are fields complete? Are definitions documented? Are duplicates, corrections, or sampling limitations common? | Poor quality evidence can weaken or invalidate reasoning even when the source is popular. |
+| Freshness | How often does the source update? Does it provide event time, observation time, import time, or reporting windows? | Freshness affects whether evidence supports current investigation, historical baseline, or future decision support. |
+| Historical depth | How far back does the data go? Is history complete, sampled, revised, or commercially gated? | Historical context is necessary for baselines, trends, anomalies, and derived evidence. |
+| Provenance support | Can records preserve source name, original reference, import batch, account context, and transformation notes? | Traceability is mandatory for explainable conclusions and audits. |
+| Licensing and terms | Do terms allow ingestion, storage, analysis, display, derived outputs, customer use, and commercial use? | Evidence that cannot be legally used should not become a product dependency. |
+| Cost | What are the direct subscription, API, licensing, storage, operational, and support costs? | Cost affects free, professional, and enterprise product boundaries. |
+| Reliability and operational fit | Are uptime, rate limits, export limits, pagination, retries, and provider changes manageable? | Unreliable sources can make investigations incomplete or non-repeatable. |
+| Privacy and security | Does the source include personal, sensitive, financial, royalty, contract, or account-scoped data? | Sensitive evidence requires stronger access, retention, audit, and display policies. |
+| Provider-neutral fit | Can records normalize cleanly into SongTrace evidence without leaking provider-specific objects into the domain model? | Clean Architecture and DDD boundaries require the reasoning engine to remain provider-neutral. |
+| Strategic fit | Does the source help SongTrace become an evidence-driven intelligence layer rather than another dashboard? | Integrations should reinforce the product vision, not pull SongTrace toward vendor-specific reporting. |
+
+### Scoring guidance
+
+A simple evaluation can use this scale for each dimension:
+
+| Score | Meaning |
+| --- | --- |
+| 0 | Unknown or not yet evaluated. |
+| 1 | Weak fit; major concerns or missing information. |
+| 2 | Partial fit; usable only with constraints or follow-up work. |
+| 3 | Strong fit; clear value and manageable risk. |
+
+Scores should not replace written judgment. Each evaluation should include qualitative notes, assumptions to validate, and any deal-breakers.
+
+### Provider-evaluation outcome categories
+
+| Outcome | Meaning |
+| --- | --- |
+| Adopt now | The source supports near-term evidence needs, has acceptable licensing and quality, and fits the current architecture. |
+| Research further | The source appears valuable, but access, licensing, quality, freshness, cost, or product value needs validation. |
+| Defer | The source may be useful later but does not support current priorities or would force premature architecture. |
+| Do not adopt | The source has blocking licensing, quality, access, privacy, cost, or provider-neutrality issues. |
+
+### Deal-breakers
+
+SongTrace should not adopt a source when:
+
+- licensing does not permit the intended ingestion, analysis, retention, display, or commercial use
+- users cannot legally authorize access to the evidence
+- provider-specific objects would need to leak into the domain reasoning model
+- provenance cannot be preserved well enough to explain conclusions
+- evidence definitions are too opaque to support trustworthy reasoning
+- data quality is too poor to support the conclusions SongTrace would present
+- security or privacy risks exceed the product's current ability to manage them
+
+### Evaluation principles
+
+- Prefer sources that strengthen required and optional evidence before exploratory evidence.
+- Prefer sources that can be normalized into existing provider-neutral evidence models.
+- Prefer user-authorized BYOD sources when they provide account-specific evidence unavailable through public APIs.
+- Treat commercial provider relationships as accelerators, not dependencies.
+- Do not implement a connector until the evidence value, access model, licensing, and architecture fit are clear.
 
 ## Data Strategy Outcome
 

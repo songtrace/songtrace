@@ -10,6 +10,9 @@ from songtrace.application.investigation_result import InvestigationResult
 from songtrace.application.investigation_service import InvestigationService
 from songtrace.application.json_raw_evidence_source import JsonRawEvidenceSource
 from songtrace.application.observation_extractor import ObservationExtractor
+from songtrace.application.playlist_placement_csv_raw_evidence_source import (
+    PlaylistPlacementCsvRawEvidenceSource,
+)
 from songtrace.application.raw_evidence_record import RawEvidenceRecord
 from songtrace.application.raw_evidence_source import RawEvidenceSource
 from songtrace.application.rule_catalog import RuleCatalog
@@ -29,6 +32,7 @@ __all__ = [
     "InvestigationService",
     "JsonRawEvidenceSource",
     "ObservationExtractor",
+    "PlaylistPlacementCsvRawEvidenceSource",
     "RawEvidenceRecord",
     "RawEvidenceSource",
     "RuleCatalog",

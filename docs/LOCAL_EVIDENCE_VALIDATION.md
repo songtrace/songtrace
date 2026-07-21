@@ -290,6 +290,18 @@ ASCAP royalty statements are downstream evidence. They can show that royalty act
 
 This command helps identify what evidence exists for a real work before expanding the domain model. It does not create `RawEvidenceRecord`, domain `Evidence`, observations, conclusions, or recommendations.
 
+## Local playlist placement evidence
+
+SongTrace includes `PlaylistPlacementCsvRawEvidenceSource` for local, user-supplied playlist placement events. This supports one upstream evidence category that can help explain royalty or stream changes without requiring a live Spotify or playlist API integration.
+
+The CSV shape is intentionally narrow:
+
+```csv
+id,source_name,summary,occurred_at,observed_at,reference
+```
+
+The source produces `playlist_activity` evidence with the `playlist_placement` signal. It does not enrich playlist metadata, search platforms, call APIs, or claim that a playlist caused engagement by itself. It only imports known playlist placement evidence that can later be evaluated alongside stream, save, royalty, and other evidence.
+
 ## API-backed sources are later
 
 Local file validation should happen before live API integrations.

@@ -108,6 +108,7 @@ The command emits deterministic JSON with safe aggregate layout information, inc
 - date and period shape masks
 - numeric parse counts without totals or values
 - row-grain candidate counts
+- safe statement-type classification when inferable from filename or header shape, such as `domestic` or `international_incoming`
 
 It does not emit royalty amounts, work titles, party names, account IDs, writer names, customer data, screenshots, or row-level values.
 

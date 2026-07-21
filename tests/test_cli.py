@@ -21,6 +21,33 @@ _COLUMNS = (
     "reference",
     "signals",
 )
+_ASCAP_LAYOUT_A_COLUMNS = (
+    "DistributionYear",
+    "Distribution Quarter",
+    "Statement Recipient ID",
+    "Statement Recipient Name",
+    "Party ID",
+    "Party Name",
+    "Performance Source/Broadcast Medium",
+    "Music User Genre",
+    "Music User",
+    "Work ID",
+    "Work Title",
+    "Number of Plays",
+    "Performance Type (Usage)",
+    "Credits",
+    "Dollars",
+    "Performance Quarter",
+)
+_ASCAP_LAYOUT_B_COLUMNS = (
+    "File Type",
+    "Statement Recipient Name",
+    "Statement Recipient ID",
+    "Distribution Date",
+    "Work Title",
+    "Work ID",
+    "$ Amount",
+)
 
 
 def test_version() -> None:
@@ -68,6 +95,50 @@ def test_profile_ascap_csv_layout_outputs_safe_json(tmp_path: Path) -> None:
     assert "SECRET_WORK_ID" not in result.stdout
     assert "SECRET_USER" not in result.stdout
     assert "123.45" not in result.stdout
+
+
+def test_investigate_ascap_csv_layout_a_text_success(tmp_path: Path) -> None:
+    path = tmp_path / "42278445.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row(), _ascap_layout_a_row()])
+
+    result = runner.invoke(app, ["investigate-ascap-csv-layout-a", str(path)])
+
+    assert result.exit_code == 0
+    assert "SongTrace Evidence Investigation" in result.stdout
+    assert "Evidence: 2" in result.stdout
+    assert "Observations: 1" in result.stdout
+    assert "Conclusions: 0" in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_investigate_ascap_csv_layout_a_json_success(tmp_path: Path) -> None:
+    path = tmp_path / "42278445.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(app, ["investigate-ascap-csv-layout-a", str(path), "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["evidence_count"] == 1
+    assert payload["observation_count"] == 1
+    assert payload["conclusion_count"] == 0
+    assert payload["conclusions"] == []
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_investigate_ascap_csv_layout_a_rejects_unsupported_layout(tmp_path: Path) -> None:
+    path = tmp_path / "43013186.csv"
+    _write_table(path, _ASCAP_LAYOUT_B_COLUMNS, [_ascap_layout_b_row()])
+
+    result = runner.invoke(app, ["investigate-ascap-csv-layout-a", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "ASCAP CSV layout A is missing required field" in output
+    assert "Traceback" not in output
 
 
 def test_validate_evidence_text_success(tmp_path: Path) -> None:
@@ -482,10 +553,14 @@ def _write_json(path: Path, records: list[dict[str, object]]) -> None:
 
 
 def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    _write_table(path, _COLUMNS, rows)
+
+
+def _write_table(path: Path, columns: tuple[str, ...], rows: list[dict[str, str]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        writer.writerow(_COLUMNS)
-        writer.writerows([row[column] for column in _COLUMNS] for row in rows)
+        writer.writerow(columns)
+        writer.writerows([row[column] for column in columns] for row in rows)
 
 
 def _write_xlsx(path: Path, rows: list[dict[str, str]]) -> None:
@@ -612,6 +687,39 @@ def _record(
     if observed_at is not None:
         record["observed_at"] = observed_at
     return record
+
+
+def _ascap_layout_a_row() -> dict[str, str]:
+    return {
+        "DistributionYear": "2026",
+        "Distribution Quarter": "2",
+        "Statement Recipient ID": "SECRET_RECIPIENT_ID",
+        "Statement Recipient Name": "SECRET_RECIPIENT",
+        "Party ID": "SECRET_PARTY_ID",
+        "Party Name": "SECRET_PARTY",
+        "Performance Source/Broadcast Medium": "Streaming",
+        "Music User Genre": "Digital",
+        "Music User": "SECRET_USER",
+        "Work ID": "SECRET_WORK_ID",
+        "Work Title": "SECRET_WORK_TITLE",
+        "Number of Plays": "10",
+        "Performance Type (Usage)": "Performance",
+        "Credits": "1.23",
+        "Dollars": "123.45",
+        "Performance Quarter": "2Q2026",
+    }
+
+
+def _ascap_layout_b_row() -> dict[str, str]:
+    return {
+        "File Type": "Royalty",
+        "Statement Recipient Name": "SECRET_RECIPIENT",
+        "Statement Recipient ID": "SECRET_RECIPIENT_ID",
+        "Distribution Date": "01-31-2026",
+        "Work Title": "SECRET_WORK_TITLE",
+        "Work ID": "SECRET_WORK_ID",
+        "$ Amount": "123.45",
+    }
 
 
 def _royalty_row() -> dict[str, str]:

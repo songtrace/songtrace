@@ -23,7 +23,7 @@ from songtrace.application import (
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
-from songtrace.providers import profile_ascap_csv_layout
+from songtrace.providers import AscapCsvRawEvidenceSource, profile_ascap_csv_layout
 
 app = typer.Typer(
     name="songtrace",
@@ -100,6 +100,40 @@ def investigate_evidence(
 
     output_format = _parse_output_format(output)
     _raw_records, evidence = _load_and_import_evidence(evidence_file)
+    observations = ObservationExtractor().extract(evidence)
+    result = SimpleInvestigator().investigate(observations)
+
+    match output_format:
+        case "text":
+            _print_text_result(evidence, observations, result.conclusions)
+        case "json":
+            _print_json_result(evidence, observations, result.conclusions)
+
+
+@app.command("investigate-ascap-csv-layout-a")
+def investigate_ascap_csv_layout_a(
+    csv_file: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Path to an ASCAP CSV file using the profiled 41-column layout A.",
+        ),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Run the deterministic investigation pipeline for an ASCAP layout A CSV file."""
+
+    output_format = _parse_output_format(output)
+    _raw_records, evidence = _load_and_import_ascap_layout_a_evidence(csv_file)
     observations = ObservationExtractor().extract(evidence)
     result = SimpleInvestigator().investigate(observations)
 
@@ -204,6 +238,22 @@ def _load_and_import_evidence(
         _print_import_error(error)
         raise typer.Exit(1) from error
     except ValueError as error:
+        _print_source_error(error)
+        raise typer.Exit(1) from error
+
+    return raw_records, evidence
+
+
+def _load_and_import_ascap_layout_a_evidence(
+    csv_file: Path,
+) -> tuple[tuple[RawEvidenceRecord, ...], tuple[Evidence, ...]]:
+    try:
+        raw_records = AscapCsvRawEvidenceSource(csv_file).load()
+        evidence = EvidenceImporter().import_records(raw_records)
+    except EvidenceImportError as error:
+        _print_import_error(error)
+        raise typer.Exit(1) from error
+    except (FileNotFoundError, ValueError) as error:
         _print_source_error(error)
         raise typer.Exit(1) from error
 

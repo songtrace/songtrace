@@ -244,6 +244,12 @@ Do not paste profiler output into documentation until you have verified it conta
 
 SongTrace includes a narrow `AscapCsvRawEvidenceSource` for the profiled 41-column ASCAP layout A. It converts supported ASCAP rows into provider-neutral `RawEvidenceRecord` objects using `royalty_activity` and `royalty_reported`.
 
+To run the current deterministic pipeline against a private layout A CSV file:
+
+```sh
+uv run songtrace investigate-ascap-csv-layout-a .songtrace-private/ascap/42278445.csv
+```
+
 This source is intentionally not a general ASCAP connector. It does not support layout B, PDF statements, reconciliation, APIs, OAuth, or persistence.
 
 ## API-backed sources are later

@@ -13,6 +13,7 @@ from songtrace.providers.ascap_csv_raw_evidence_source import AscapCsvRawEvidenc
 from songtrace.providers.ascap_international_incoming_csv_raw_evidence_source import (
     AscapInternationalIncomingCsvRawEvidenceSource,
 )
+from songtrace.providers.ascap_work_summary import AscapWorkSummary, summarize_ascap_work
 
 __all__ = [
     "AscapCsvColumnProfile",
@@ -23,5 +24,7 @@ __all__ = [
     "AscapCsvRowGrainProfile",
     "AscapCsvStatementTypeProfile",
     "AscapInternationalIncomingCsvRawEvidenceSource",
+    "AscapWorkSummary",
     "profile_ascap_csv_layout",
+    "summarize_ascap_work",
 ]

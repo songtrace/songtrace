@@ -48,6 +48,25 @@ _ASCAP_LAYOUT_B_COLUMNS = (
     "Work ID",
     "$ Amount",
 )
+_ASCAP_INTERNATIONAL_INCOMING_COLUMNS = (
+    "File Type",
+    "Statement Recipient Name",
+    "Statement Recipient ID",
+    "Party Name",
+    "Party ID",
+    "Distribution Date",
+    "Country Name",
+    "Performance Start Date",
+    "Performance End Date",
+    "Work Title",
+    "Work ID",
+    "Revenue Class Code",
+    "Revenue Class Description",
+    "$ Amount",
+    "Role Type",
+    "Type Of Right",
+    "Territory",
+)
 
 
 def test_version() -> None:
@@ -138,6 +157,133 @@ def test_investigate_ascap_csv_layout_a_rejects_unsupported_layout(tmp_path: Pat
     assert result.exit_code == 1
     assert "Evidence source failed." in output
     assert "ASCAP CSV layout A is missing required field" in output
+    assert "Traceback" not in output
+
+
+def test_summarize_ascap_work_text_combines_supported_statement_types(tmp_path: Path) -> None:
+    domestic = tmp_path / "domestic.csv"
+    international = tmp_path / "international.csv"
+    _write_table(
+        domestic,
+        _ASCAP_LAYOUT_A_COLUMNS,
+        [_ascap_layout_a_row(), _ascap_layout_a_row(work_id="OTHER_WORK")],
+    )
+    _write_table(
+        international,
+        _ASCAP_INTERNATIONAL_INCOMING_COLUMNS,
+        [
+            _ascap_international_incoming_row(),
+            _ascap_international_incoming_row(work_id="OTHER_WORK"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        ["summarize-ascap-work", str(domestic), str(international), "--work-id", "SECRET_WORK_ID"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace ASCAP Work Summary" in result.stdout
+    assert "Scanned files: 2" in result.stdout
+    assert "Matched files: 2" in result.stdout
+    assert "Matched rows: 2" in result.stdout
+    assert "Distribution periods/dates: 2" in result.stdout
+    assert "Territories/countries: 1" in result.stdout
+    assert "Revenue classes: 2" in result.stdout
+    assert "- domestic: 1" in result.stdout
+    assert "- international_incoming: 1" in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+    assert "domestic.csv" not in result.stdout
+    assert "international.csv" not in result.stdout
+
+
+def test_summarize_ascap_work_json_output_is_private_safe(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(
+        app,
+        ["summarize-ascap-work", str(path), "--work-title", "secret_work", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "distribution_period_count": 1,
+        "matched_file_count": 1,
+        "matched_row_count": 1,
+        "revenue_class_count": 1,
+        "scanned_file_count": 1,
+        "statement_type_counts": {"domestic": 1},
+        "territory_count": 0,
+    }
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_work_accepts_directory_input(tmp_path: Path) -> None:
+    statements = tmp_path / "statements"
+    statements.mkdir()
+    _write_table(statements / "domestic.csv", _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+    _write_table(
+        statements / "international.csv",
+        _ASCAP_INTERNATIONAL_INCOMING_COLUMNS,
+        [_ascap_international_incoming_row()],
+    )
+
+    result = runner.invoke(
+        app, ["summarize-ascap-work", str(statements), "--work-id", "SECRET_WORK_ID"]
+    )
+
+    assert result.exit_code == 0
+    assert "Scanned files: 2" in result.stdout
+    assert "Matched rows: 2" in result.stdout
+
+
+def test_summarize_ascap_work_reports_no_matches(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(app, ["summarize-ascap-work", str(path), "--work-id", "MISSING_WORK"])
+
+    assert result.exit_code == 0
+    assert "Matched files: 0" in result.stdout
+    assert "Matched rows: 0" in result.stdout
+    assert "- none: 0" in result.stdout
+
+
+def test_summarize_ascap_work_requires_filter(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(app, ["summarize-ascap-work", str(path)])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "either work_id or work_title_query is required" in output
+    assert "Traceback" not in output
+
+
+def test_summarize_ascap_work_rejects_unsupported_layout(tmp_path: Path) -> None:
+    path = tmp_path / "unsupported.csv"
+    _write_table(
+        path,
+        ("Unsupported", "Work ID", "Work Title"),
+        [{"Unsupported": "x", "Work ID": "SECRET_WORK_ID", "Work Title": "SECRET_WORK_TITLE"}],
+    )
+
+    result = runner.invoke(app, ["summarize-ascap-work", str(path), "--work-id", "SECRET_WORK_ID"])
+    output = result.output + result.stderr
+
+    assert result.exit_code == 1
+    assert "Evidence source failed." in output
+    assert "unsupported ASCAP CSV layout for work summary" in output
+    assert "SECRET_WORK_ID" not in output
+    assert "SECRET_WORK_TITLE" not in output
     assert "Traceback" not in output
 
 
@@ -689,7 +835,7 @@ def _record(
     return record
 
 
-def _ascap_layout_a_row() -> dict[str, str]:
+def _ascap_layout_a_row(*, work_id: str = "SECRET_WORK_ID") -> dict[str, str]:
     return {
         "DistributionYear": "2026",
         "Distribution Quarter": "2",
@@ -700,7 +846,7 @@ def _ascap_layout_a_row() -> dict[str, str]:
         "Performance Source/Broadcast Medium": "Streaming",
         "Music User Genre": "Digital",
         "Music User": "SECRET_USER",
-        "Work ID": "SECRET_WORK_ID",
+        "Work ID": work_id,
         "Work Title": "SECRET_WORK_TITLE",
         "Number of Plays": "10",
         "Performance Type (Usage)": "Performance",
@@ -719,6 +865,28 @@ def _ascap_layout_b_row() -> dict[str, str]:
         "Work Title": "SECRET_WORK_TITLE",
         "Work ID": "SECRET_WORK_ID",
         "$ Amount": "123.45",
+    }
+
+
+def _ascap_international_incoming_row(*, work_id: str = "SECRET_WORK_ID") -> dict[str, str]:
+    return {
+        "File Type": "Royalty",
+        "Statement Recipient Name": "SECRET_RECIPIENT",
+        "Statement Recipient ID": "SECRET_RECIPIENT_ID",
+        "Party Name": "SECRET_PARTY",
+        "Party ID": "SECRET_PARTY_ID",
+        "Distribution Date": "01-31-2026",
+        "Country Name": "SECRET_COUNTRY",
+        "Performance Start Date": "01-01-2026",
+        "Performance End Date": "01-31-2026",
+        "Work Title": "SECRET_WORK_TITLE",
+        "Work ID": work_id,
+        "Revenue Class Code": "SECRET_CODE",
+        "Revenue Class Description": "SECRET_DESCRIPTION",
+        "$ Amount": "123.45",
+        "Role Type": "Writer",
+        "Type Of Right": "Performance",
+        "Territory": "SECRET_TERRITORY",
     }
 
 

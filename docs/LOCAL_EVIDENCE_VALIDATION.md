@@ -131,6 +131,17 @@ For scripts or repeatable local checks, request a small provider-neutral JSON va
 uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv --output json
 ```
 
+When comparing validation output across runs, supply deterministic batch metadata:
+
+```sh
+uv run songtrace validate-evidence /absolute/path/to/local/private/evidence.csv \
+  --output json \
+  --batch-id 00000000-0000-0000-0000-000000000901 \
+  --imported-at 2026-07-21T12:00:00+00:00
+```
+
+`--imported-at` must be a timezone-aware ISO datetime.
+
 After the file imports successfully, run the current deterministic investigation pipeline:
 
 ```sh

@@ -101,12 +101,23 @@ def spotify_playlist_access_check_command(
             help="Output format: text or json.",
         ),
     ] = "text",
+    access_mode: Annotated[
+        str,
+        typer.Option(
+            "--access-mode",
+            help="Spotify access mode: client-credentials or user-token.",
+        ),
+    ] = "client-credentials",
 ) -> None:
     """Check current Spotify playlist metadata and track-item access."""
 
     output_format = parse_output_format(output)
+    parsed_access_mode = _parse_spotify_playlist_access_mode(access_mode)
     try:
-        status = check_spotify_playlist_access(spotify_playlist_id)
+        status = check_spotify_playlist_access(
+            spotify_playlist_id,
+            access_mode=parsed_access_mode,
+        )
     except ValueError as error:
         print_source_error(error)
         raise typer.Exit(1) from error
@@ -766,6 +777,19 @@ def _spotify_playlist_search_queries(
     additional_queries: list[str] | None,
 ) -> tuple[str, ...]:
     return (query, *(additional_queries or []))
+
+
+def _parse_spotify_playlist_access_mode(value: str) -> str:
+    match value.strip().lower():
+        case "client-credentials" | "client_credentials":
+            return "client_credentials"
+        case "user-token" | "user_token":
+            return "user_token"
+        case _:
+            raise typer.BadParameter(
+                "access mode must be client-credentials or user-token",
+                param_hint="--access-mode",
+            )
 
 
 def _parse_optional_export_track_identity(

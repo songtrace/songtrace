@@ -10,6 +10,7 @@ from songtrace.providers.spotify_api_access import request_spotify_client_creden
 from songtrace.providers.spotify_environment import (
     SPOTIFY_CLIENT_ID_ENV,
     SPOTIFY_CLIENT_SECRET_ENV,
+    SPOTIFY_USER_ACCESS_TOKEN_ENV,
     validate_spotify_environment,
 )
 from songtrace.providers.spotify_playlist_membership import (
@@ -64,8 +65,9 @@ def check_spotify_playlist_access(
     token_provider: TokenProvider | None = None,
     playlist_payload_requester: PlaylistPayloadRequester | None = None,
     playlist_track_pages_requester: PlaylistTrackPagesRequester | None = None,
+    access_mode: str = "client_credentials",
 ) -> SpotifyPlaylistAccessStatus:
-    """Check client-credentials access to Spotify playlist metadata and track items."""
+    """Check Spotify playlist metadata and track-item access with the selected access mode."""
 
     normalized_playlist_id = spotify_playlist_id.strip()
     if not normalized_playlist_id:
@@ -73,16 +75,8 @@ def check_spotify_playlist_access(
         raise ValueError(msg)
 
     values = os.environ if env is None else env
-    environment = validate_spotify_environment(values)
-    if not environment.is_configured:
-        msg = "missing_credentials"
-        raise ValueError(msg)
-
-    requester = token_provider or request_spotify_client_credentials_access_token
-    access_token = requester(
-        _required_env_value(values, SPOTIFY_CLIENT_ID_ENV),
-        _required_env_value(values, SPOTIFY_CLIENT_SECRET_ENV),
-    )
+    normalized_access_mode = access_mode.strip()
+    access_token = _access_token_for_mode(values, normalized_access_mode, token_provider)
 
     playlist_name: str | None = None
     metadata_readable = False
@@ -106,13 +100,36 @@ def check_spotify_playlist_access(
 
     return SpotifyPlaylistAccessStatus(
         spotify_playlist_id=normalized_playlist_id,
-        access_mode="client_credentials",
+        access_mode=normalized_access_mode,
         playlist_name=playlist_name,
         metadata_readable=metadata_readable,
         metadata_failure_reason=metadata_failure_reason,
         track_items_readable=track_items_readable,
         track_items_failure_reason=track_items_failure_reason,
     )
+
+
+def _access_token_for_mode(
+    values: Mapping[str, str | None],
+    access_mode: str,
+    token_provider: TokenProvider | None,
+) -> str:
+    match access_mode:
+        case "client_credentials":
+            environment = validate_spotify_environment(values)
+            if not environment.is_configured:
+                msg = "missing_credentials"
+                raise ValueError(msg)
+            requester = token_provider or request_spotify_client_credentials_access_token
+            return requester(
+                _required_env_value(values, SPOTIFY_CLIENT_ID_ENV),
+                _required_env_value(values, SPOTIFY_CLIENT_SECRET_ENV),
+            )
+        case "user_token":
+            return _required_env_value(values, SPOTIFY_USER_ACCESS_TOKEN_ENV, "missing_user_token")
+        case _:
+            msg = "spotify_playlist_access_mode_invalid"
+            raise ValueError(msg)
 
 
 def _validate_failure_state(
@@ -141,9 +158,12 @@ def _optional_string(
     return normalized or None
 
 
-def _required_env_value(values: Mapping[str, str | None], variable_name: str) -> str:
+def _required_env_value(
+    values: Mapping[str, str | None],
+    variable_name: str,
+    missing_error: str = "missing_credentials",
+) -> str:
     value = values.get(variable_name)
     if value is None or not value.strip():
-        msg = "missing_credentials"
-        raise ValueError(msg)
+        raise ValueError(missing_error)
     return value.strip()

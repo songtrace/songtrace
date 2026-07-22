@@ -17,8 +17,9 @@ from tests.presentation.cli.fixtures import *
 
 
 def test_spotify_playlist_access_check_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    def check(playlist_id: str) -> SpotifyPlaylistAccessStatus:
+    def check(playlist_id: str, *, access_mode: str) -> SpotifyPlaylistAccessStatus:
         assert playlist_id == "playlist-id"
+        assert access_mode == "client_credentials"
         return SpotifyPlaylistAccessStatus(
             spotify_playlist_id="playlist-id",
             access_mode="client_credentials",
@@ -45,7 +46,8 @@ def test_spotify_playlist_access_check_text_output(monkeypatch: pytest.MonkeyPat
 
 
 def test_spotify_playlist_access_check_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    def check(_playlist_id: str) -> SpotifyPlaylistAccessStatus:
+    def check(_playlist_id: str, *, access_mode: str) -> SpotifyPlaylistAccessStatus:
+        assert access_mode == "client_credentials"
         return SpotifyPlaylistAccessStatus(
             spotify_playlist_id="playlist-id",
             access_mode="client_credentials",
@@ -79,7 +81,8 @@ def test_spotify_playlist_access_check_json_output(monkeypatch: pytest.MonkeyPat
 def test_spotify_playlist_access_check_failure_output_is_private_safe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def check(_playlist_id: str) -> SpotifyPlaylistAccessStatus:
+    def check(_playlist_id: str, *, access_mode: str) -> SpotifyPlaylistAccessStatus:
+        assert access_mode == "client_credentials"
         raise ValueError("missing_credentials")
 
     monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
@@ -92,6 +95,61 @@ def test_spotify_playlist_access_check_failure_output_is_private_safe(
     assert "SECRET_CLIENT_SECRET" not in result.stderr
     assert "SECRET_TOKEN" not in result.stderr
     assert "access_token" not in result.stderr
+
+
+def test_spotify_playlist_access_check_supports_user_token_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def check(playlist_id: str, *, access_mode: str) -> SpotifyPlaylistAccessStatus:
+        assert playlist_id == "playlist-id"
+        assert access_mode == "user_token"
+        return SpotifyPlaylistAccessStatus(
+            spotify_playlist_id="playlist-id",
+            access_mode="user_token",
+            playlist_name="Hard Rock Classics",
+            metadata_readable=True,
+            track_items_readable=True,
+        )
+
+    monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-access-check", "playlist-id", "--access-mode", "user-token"],
+    )
+
+    assert result.exit_code == 0
+    assert "Access mode: user_token" in result.stdout
+    assert "Metadata readable: yes" in result.stdout
+    assert "Track items readable: yes" in result.stdout
+    assert "SECRET_USER_TOKEN" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_access_check_rejects_invalid_access_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def check(_playlist_id: str, *, access_mode: str) -> SpotifyPlaylistAccessStatus:
+        calls.append(access_mode)
+        return SpotifyPlaylistAccessStatus(
+            spotify_playlist_id="playlist-id",
+            access_mode=access_mode,
+            metadata_readable=True,
+            track_items_readable=True,
+        )
+
+    monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-access-check", "playlist-id", "--access-mode", "invalid"],
+    )
+
+    assert result.exit_code != 0
+    assert calls == []
+    assert "Traceback" not in result.stderr
 
 
 def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) -> None:

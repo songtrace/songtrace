@@ -537,6 +537,34 @@ It does not emit royalty amounts, work titles, party names, account IDs, writer 
 
 This is a local validation helper for understanding ASCAP CSV layouts. It is not an ASCAP connector and does not produce `RawEvidenceRecord` or domain `Evidence`.
 
+### `ascap-music-event-report`
+
+Create an ASCAP-backed music event report for a specific work. This command translates ASCAP work and platform-source summaries into event-oriented language for answering what happened, what is known, what remains unknown, and what evidence should be collected next.
+
+```sh
+uv run songtrace ascap-music-event-report .songtrace-private/ascap --work-id "<private-work-id>"
+```
+
+By default, the report is private-safe. It prints event status, commercial impact status, platform attribution status, causal attribution status, aggregate evidence counts, missing evidence categories, and recommended next actions. It does not print work titles, work IDs, filenames, row-level values, account IDs, party names, writer names, source labels, play totals, or royalty amounts.
+
+For local-only exploratory analysis, opt in to aggregate platform source labels, play totals, dollar totals, row counts, period counts, music user genres, broadcast media, and usage types:
+
+```sh
+uv run songtrace ascap-music-event-report .songtrace-private/ascap \
+  --work-id "<private-work-id>" \
+  --include-sources
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace ascap-music-event-report .songtrace-private/ascap \
+  --work-id "<private-work-id>" \
+  --output json
+```
+
+This command is an initial music-event intelligence report. It can confirm ASCAP-backed commercial activity and platform-level ASCAP source evidence, but it does not infer a causal trigger without corroborating upstream evidence such as TikTok sound/video history, Spotify for Artists or distributor source breakdowns, playlist placement evidence, social posts, video traffic sources, or campaign logs.
+
 ### `summarize-ascap-work`
 
 Summarize private ASCAP CSV rows for a specific work across supported local ASCAP CSV layouts without exposing row-level values.

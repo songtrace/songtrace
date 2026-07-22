@@ -111,21 +111,50 @@ class AscapPlatformSourcesSummary:
             },
         }
         if include_sources:
-            payload["platform_sources"] = [
-                {
-                    "dollars": _format_decimal(source.dollars),
-                    "music_user": source.music_user,
-                    "music_user_genre": source.music_user_genre,
-                    "number_of_plays": _format_decimal(source.number_of_plays),
-                    "performance_source_broadcast_medium": (
-                        source.performance_source_broadcast_medium
-                    ),
-                    "performance_type_usage": source.performance_type_usage,
-                    "period_count": source.period_count,
-                    "row_count": source.row_count,
-                }
-                for source in self.platform_sources
-            ]
+            payload["platform_sources"] = _platform_sources_jsonable(self.platform_sources)
+        return json.dumps(payload, sort_keys=True)
+
+
+@dataclass(frozen=True, slots=True)
+class AscapMusicEventReport:
+    """ASCAP-backed music event report for a matching work."""
+
+    event_type: str
+    event_status: str
+    commercial_impact_status: str
+    platform_attribution_status: str
+    causal_attribution_status: str
+    missing_evidence: tuple[str, ...]
+    recommended_next_actions: tuple[str, ...]
+    work_summary: AscapWorkSummary
+    platform_sources_summary: AscapPlatformSourcesSummary
+
+    def to_json(self, *, include_sources: bool = False) -> str:
+        """Serialize the event report as deterministic JSON."""
+
+        payload: dict[str, Any] = {
+            "causal_attribution_status": self.causal_attribution_status,
+            "commercial_impact_status": self.commercial_impact_status,
+            "event_status": self.event_status,
+            "event_type": self.event_type,
+            "matched_file_count": self.work_summary.matched_file_count,
+            "matched_row_count": self.work_summary.matched_row_count,
+            "missing_evidence": self.missing_evidence,
+            "platform_attribution_status": self.platform_attribution_status,
+            "platform_source_count": self.platform_sources_summary.platform_source_count,
+            "recommended_next_actions": self.recommended_next_actions,
+            "scanned_file_count": self.work_summary.scanned_file_count,
+            "statement_type_counts": dict(self.work_summary.statement_type_counts),
+            "summary_counts": {
+                "distribution_periods": self.work_summary.distribution_period_count,
+                "revenue_classes": self.work_summary.revenue_class_count,
+                "territories": self.work_summary.territory_count,
+            },
+        }
+        if include_sources:
+            payload["platform_sources"] = _platform_sources_jsonable(
+                self.platform_sources_summary.platform_sources
+            )
         return json.dumps(payload, sort_keys=True)
 
 
@@ -325,6 +354,53 @@ def summarize_ascap_platform_sources(
     )
 
 
+def summarize_ascap_music_event(
+    paths: tuple[Path, ...],
+    *,
+    work_id: str | None = None,
+    work_title_query: str | None = None,
+) -> AscapMusicEventReport:
+    """Build an ASCAP-backed music event report for a work."""
+
+    work_summary = summarize_ascap_work(
+        paths,
+        work_id=work_id,
+        work_title_query=work_title_query,
+    )
+    platform_sources_summary = summarize_ascap_platform_sources(
+        paths,
+        work_id=work_id,
+        work_title_query=work_title_query,
+    )
+    event_type, event_status = _music_event_identity(
+        work_summary.matched_row_count,
+        platform_sources_summary.platform_source_count,
+    )
+    return AscapMusicEventReport(
+        event_type=event_type,
+        event_status=event_status,
+        commercial_impact_status=_commercial_impact_status(work_summary.matched_row_count),
+        platform_attribution_status=_event_platform_attribution_status(
+            work_summary.matched_row_count,
+            platform_sources_summary.platform_source_count,
+        ),
+        causal_attribution_status=_event_causal_attribution_status(
+            work_summary.matched_row_count,
+            platform_sources_summary.platform_source_count,
+        ),
+        missing_evidence=_event_missing_evidence(
+            work_summary.matched_row_count,
+            platform_sources_summary.platform_source_count,
+        ),
+        recommended_next_actions=_event_recommended_next_actions(
+            work_summary.matched_row_count,
+            platform_sources_summary.platform_source_count,
+        ),
+        work_summary=work_summary,
+        platform_sources_summary=platform_sources_summary,
+    )
+
+
 def _csv_paths(paths: tuple[Path, ...]) -> tuple[Path, ...]:
     if not paths:
         raise ValueError("at least one ASCAP CSV path or directory is required")
@@ -450,6 +526,63 @@ def _platform_source_attribution_gap(
     )
 
 
+def _music_event_identity(matched_row_count: int, platform_source_count: int) -> tuple[str, str]:
+    if matched_row_count == 0:
+        return "ascap_activity_check", "no_matching_activity_detected"
+    if platform_source_count == 0:
+        return "ascap_commercial_activity", "commercial_impact_confirmed_platform_unresolved"
+    return "ascap_commercial_platform_activity", "commercial_impact_confirmed"
+
+
+def _commercial_impact_status(matched_row_count: int) -> str:
+    if matched_row_count == 0:
+        return "not_detected"
+    return "confirmed_by_ascap_royalty_activity"
+
+
+def _event_platform_attribution_status(matched_row_count: int, platform_source_count: int) -> str:
+    if matched_row_count == 0:
+        return "not_detected"
+    if platform_source_count == 0:
+        return "platform_sources_unavailable"
+    return "platform_sources_found"
+
+
+def _event_causal_attribution_status(matched_row_count: int, platform_source_count: int) -> str:
+    if matched_row_count == 0:
+        return "not_applicable"
+    if platform_source_count == 0:
+        return "causal_origin_unknown_platform_sources_unavailable"
+    return "causal_origin_unknown"
+
+
+def _event_missing_evidence(matched_row_count: int, platform_source_count: int) -> tuple[str, ...]:
+    if matched_row_count == 0:
+        return _NO_MATCH_MISSING_EVIDENCE
+    if platform_source_count == 0:
+        return ("domestic_ascap_music_user_rows", *_CAUSAL_ATTRIBUTION_MISSING_EVIDENCE)
+    return _CAUSAL_ATTRIBUTION_MISSING_EVIDENCE
+
+
+def _event_recommended_next_actions(
+    matched_row_count: int, platform_source_count: int
+) -> tuple[str, ...]:
+    if matched_row_count == 0:
+        return ("verify_work_identity", "add_matching_royalty_activity")
+    if platform_source_count == 0:
+        return (
+            "add_domestic_ascap_music_user_rows_or_platform_report",
+            "collect_distributor_usage_source_evidence",
+            "collect_manual_or_screenshot_evidence",
+        )
+    return (
+        "prioritize_top_ascap_platform_sources",
+        "collect_tiktok_sound_or_video_history",
+        "collect_spotify_for_artists_or_distributor_source_breakdowns",
+        "collect_playlist_social_video_or_campaign_evidence",
+    )
+
+
 def _parse_decimal(value: str) -> Decimal:
     cleaned = value.strip().replace(",", "").replace("$", "")
     if cleaned.startswith("(") and cleaned.endswith(")"):
@@ -465,6 +598,24 @@ def _parse_decimal(value: str) -> Decimal:
 
 def _format_decimal(value: Decimal) -> str:
     return format(value.normalize(), "f")
+
+
+def _platform_sources_jsonable(
+    platform_sources: tuple[AscapPlatformSourceSummary, ...],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "dollars": _format_decimal(source.dollars),
+            "music_user": source.music_user,
+            "music_user_genre": source.music_user_genre,
+            "number_of_plays": _format_decimal(source.number_of_plays),
+            "performance_source_broadcast_medium": source.performance_source_broadcast_medium,
+            "performance_type_usage": source.performance_type_usage,
+            "period_count": source.period_count,
+            "row_count": source.row_count,
+        }
+        for source in platform_sources
+    ]
 
 
 def _to_jsonable(

@@ -7,6 +7,7 @@ from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
 from songtrace.providers import (
+    AscapMusicEventReport,
     AscapPlatformSourcesSummary,
     AscapWorkSummary,
     SpotifyApiAccessStatus,
@@ -123,6 +124,48 @@ def print_investigation_json_result(
     print(json.dumps(payload, sort_keys=True))
 
 
+def print_ascap_music_event_text_result(
+    report: AscapMusicEventReport, *, include_sources: bool
+) -> None:
+    console.print("[bold]SongTrace ASCAP Music Event Report[/bold]")
+    console.print()
+    console.print(f"Event type: {report.event_type}")
+    console.print(f"Event status: {report.event_status}")
+    console.print(f"Commercial impact: {report.commercial_impact_status}")
+    console.print(f"Platform attribution: {report.platform_attribution_status}")
+    console.print(f"Causal attribution: {report.causal_attribution_status}")
+    console.print()
+    console.print("[bold]Evidence summary[/bold]")
+    console.print(f"Scanned files: {report.work_summary.scanned_file_count}")
+    console.print(f"Matched files: {report.work_summary.matched_file_count}")
+    console.print(f"Matched rows: {report.work_summary.matched_row_count}")
+    console.print(f"Distribution periods/dates: {report.work_summary.distribution_period_count}")
+    console.print(f"Territories/countries: {report.work_summary.territory_count}")
+    console.print(f"Revenue classes: {report.work_summary.revenue_class_count}")
+    console.print(f"Platform sources: {report.platform_sources_summary.platform_source_count}")
+    console.print("Statement types:")
+    if report.work_summary.statement_type_counts:
+        for statement_type, count in report.work_summary.statement_type_counts:
+            console.print(f"- {statement_type}: {count}")
+    else:
+        console.print("- none: 0")
+
+    console.print()
+    console.print("[bold]Missing evidence[/bold]")
+    for evidence_type in report.missing_evidence:
+        console.print(f"- {evidence_type}")
+
+    console.print()
+    console.print("[bold]Recommended next actions[/bold]")
+    for action in report.recommended_next_actions:
+        console.print(f"- {action}")
+
+    if include_sources:
+        console.print()
+        console.print("[bold]Platform source breakdown[/bold]")
+        _print_ascap_platform_source_breakdown(report.platform_sources_summary)
+
+
 def print_ascap_platform_sources_text_result(
     summary: AscapPlatformSourcesSummary, *, include_sources: bool
 ) -> None:
@@ -142,21 +185,25 @@ def print_ascap_platform_sources_text_result(
     if include_sources:
         console.print()
         console.print("[bold]Platform source breakdown[/bold]")
-        if summary.platform_sources:
-            for source in summary.platform_sources:
-                console.print(
-                    "- "
-                    f"{source.music_user}: "
-                    f"{source.number_of_plays:,} plays, "
-                    f"${source.dollars:.2f}, "
-                    f"rows={source.row_count}, "
-                    f"periods={source.period_count}, "
-                    f"genre={source.music_user_genre}, "
-                    f"medium={source.performance_source_broadcast_medium}, "
-                    f"usage={source.performance_type_usage}"
-                )
-        else:
-            console.print("- none: 0")
+        _print_ascap_platform_source_breakdown(summary)
+
+
+def _print_ascap_platform_source_breakdown(summary: AscapPlatformSourcesSummary) -> None:
+    if summary.platform_sources:
+        for source in summary.platform_sources:
+            console.print(
+                "- "
+                f"{source.music_user}: "
+                f"{source.number_of_plays:,} plays, "
+                f"${source.dollars:.2f}, "
+                f"rows={source.row_count}, "
+                f"periods={source.period_count}, "
+                f"genre={source.music_user_genre}, "
+                f"medium={source.performance_source_broadcast_medium}, "
+                f"usage={source.performance_type_usage}"
+            )
+    else:
+        console.print("- none: 0")
 
 
 def print_ascap_work_summary_text_result(

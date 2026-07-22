@@ -436,6 +436,174 @@ def test_summarize_ascap_platform_sources_json_sources_are_deterministic(
     assert "SECRET_WORK_TITLE" not in result.stdout
 
 
+def test_ascap_music_event_report_default_text_is_private_safe(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row(music_user="SPOTIFY")])
+
+    result = runner.invoke(
+        app,
+        ["ascap-music-event-report", str(path), "--work-id", "SECRET_WORK_ID"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace ASCAP Music Event Report" in result.stdout
+    assert "Event type: ascap_commercial_platform_activity" in result.stdout
+    assert "Event status: commercial_impact_confirmed" in result.stdout
+    assert "Commercial impact: confirmed_by_ascap_royalty_activity" in result.stdout
+    assert "Platform attribution: platform_sources_found" in result.stdout
+    assert "Causal attribution: causal_origin_unknown" in result.stdout
+    assert "Platform sources: 1" in result.stdout
+    assert "Missing evidence" in result.stdout
+    assert "Recommended next actions" in result.stdout
+    assert "collect_tiktok_sound_or_video_history" in result.stdout
+    assert "SPOTIFY" not in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_ascap_music_event_report_sources_are_opt_in(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(
+        path,
+        _ASCAP_LAYOUT_A_COLUMNS,
+        [
+            _ascap_layout_a_row(music_user="SPOTIFY", number_of_plays="100", dollars="10.25"),
+            _ascap_layout_a_row(music_user="TIKTOK", number_of_plays="250", dollars="0.50"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "ascap-music-event-report",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-sources",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Platform source breakdown" in result.stdout
+    assert "- TIKTOK: 250 plays, $0.50" in result.stdout
+    assert "- SPOTIFY: 100 plays, $10.25" in result.stdout
+    assert result.stdout.index("TIKTOK") < result.stdout.index("SPOTIFY")
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+
+
+def test_ascap_music_event_report_json_is_deterministic(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row(music_user="SPOTIFY")])
+
+    result = runner.invoke(
+        app,
+        [
+            "ascap-music-event-report",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "causal_attribution_status": "causal_origin_unknown",
+        "commercial_impact_status": "confirmed_by_ascap_royalty_activity",
+        "event_status": "commercial_impact_confirmed",
+        "event_type": "ascap_commercial_platform_activity",
+        "matched_file_count": 1,
+        "matched_row_count": 1,
+        "missing_evidence": [
+            "campaign_activity_logs",
+            "in_platform_source_breakdowns",
+            "playlist_placement_evidence",
+            "social_post_evidence",
+            "video_traffic_source_evidence",
+        ],
+        "platform_attribution_status": "platform_sources_found",
+        "platform_source_count": 1,
+        "recommended_next_actions": [
+            "prioritize_top_ascap_platform_sources",
+            "collect_tiktok_sound_or_video_history",
+            "collect_spotify_for_artists_or_distributor_source_breakdowns",
+            "collect_playlist_social_video_or_campaign_evidence",
+        ],
+        "scanned_file_count": 1,
+        "statement_type_counts": {"domestic": 1},
+        "summary_counts": {
+            "distribution_periods": 1,
+            "revenue_classes": 1,
+            "territories": 0,
+        },
+    }
+    assert "platform_sources" not in payload
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_ascap_music_event_report_json_sources_are_opt_in(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row(music_user="SPOTIFY")])
+
+    result = runner.invoke(
+        app,
+        [
+            "ascap-music-event-report",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-sources",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["platform_sources"] == [
+        {
+            "dollars": "123.45",
+            "music_user": "SPOTIFY",
+            "music_user_genre": "Digital",
+            "number_of_plays": "10",
+            "performance_source_broadcast_medium": "Streaming",
+            "performance_type_usage": "Performance",
+            "period_count": 1,
+            "row_count": 1,
+        }
+    ]
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+
+
+def test_ascap_music_event_report_reports_no_matches(tmp_path: Path) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row()])
+
+    result = runner.invoke(
+        app,
+        ["ascap-music-event-report", str(path), "--work-id", "MISSING_WORK", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["event_status"] == "no_matching_activity_detected"
+    assert payload["commercial_impact_status"] == "not_detected"
+    assert payload["platform_attribution_status"] == "not_detected"
+    assert payload["causal_attribution_status"] == "not_applicable"
+    assert payload["missing_evidence"] == ["matching_royalty_activity"]
+    assert payload["recommended_next_actions"] == [
+        "verify_work_identity",
+        "add_matching_royalty_activity",
+    ]
+
+
 def test_summarize_ascap_work_attribution_gaps_report_no_match_status(
     tmp_path: Path,
 ) -> None:

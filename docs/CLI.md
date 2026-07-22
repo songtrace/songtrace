@@ -74,6 +74,8 @@ uv run songtrace spotify-playlist-items-diagnostic 5cwIrjOMWTiGCYB5Z9oQix --acce
 
 This diagnostic checks playlist metadata, the existing paged track-items request used by SongTrace, and a minimal playlist track-items request. It reports only safe status and reason codes, such as `spotify_playlist_tracks_http_error_403` or `spotify_playlist_minimal_tracks_http_error_403`. It does not print tokens, auth headers, raw Spotify payloads, user IDs, or provider response bodies.
 
+If metadata is readable but track items return `403`, SongTrace has confirmed only that the playlist item endpoint is inaccessible through the current access path. That result does not prove the track is absent from the playlist or that playlist activity was irrelevant. Treat it as missing verification evidence and use another authorized or licensed source for playlist placement.
+
 For machine-readable output:
 
 ```sh
@@ -123,7 +125,9 @@ uv run songtrace spotify-playlist-search "Everything Is Fading" 7zHxneKcojYp1eFk
   --limit 10
 ```
 
-This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, de-duplicates repeated playlist IDs in first-seen order, then verifies current membership for each candidate. `--limit` applies per query.
+This is a provider-facing discovery probe. Spotify does not provide a global endpoint to find every playlist containing a track, so this command is not exhaustive. It searches candidate playlists by query, de-duplicates repeated playlist IDs in first-seen order, then verifies current membership for each candidate when playlist item access is available. `--limit` applies per query.
+
+If candidate playlist item access returns `403`, the candidate should be treated as unverified rather than as a negative placement result. Use `spotify-playlist-items-diagnostic` to distinguish metadata access from item access, and use another evidence source when verified playlist placement is required.
 
 For machine-readable output:
 
@@ -146,7 +150,7 @@ uv run songtrace export-spotify-playlist-search-placements "Everything Is Fading
   --output-file .songtrace-private/everything-is-fading/spotify-playlist-search-placements.json
 ```
 
-The command writes one `playlist_activity` / `playlist_placement` raw evidence record per verified current placement. It writes an empty JSON array when no verified placements are found. It does not infer historical playlist placement, playlist add dates, causal impact, or exhaustive source attribution.
+The command writes one `playlist_activity` / `playlist_placement` raw evidence record per verified current placement. It writes an empty JSON array when no verified placements are found. It does not infer historical playlist placement, playlist add dates, causal impact, exhaustive source attribution, or absence from inaccessible playlists.
 
 ### `export-spotify-playlist-placement`
 

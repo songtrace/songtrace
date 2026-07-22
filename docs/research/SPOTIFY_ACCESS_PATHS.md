@@ -214,7 +214,7 @@ The next implementation work should focus on real available evidence, not specul
 Recommended next tickets:
 
 1. **Spotify for Artists private export profiling guidance**
-   - Document how to place authorized exports in `.songtrace-private`.
+   - Use [Spotify for Artists Export Profiling Guide](../validation/SPOTIFY_FOR_ARTISTS_EXPORT_PROFILING.md) to place authorized exports in `.songtrace-private` and record private-safe layout notes.
    - Add a private-safe profiler only after a real export shape is available locally.
    - Report column names, row counts, date fields, and candidate evidence semantics without exposing private values.
 

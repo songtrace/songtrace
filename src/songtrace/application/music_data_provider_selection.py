@@ -339,8 +339,7 @@ def _spotify_for_artists_candidate() -> MusicDataProviderCandidate:
             "Exact export shape and historical depth must be profiled locally.",
         ),
         proof_case_relevance=(
-            "High value if access exists for the Warrel Dane catalog or comparable "
-            "export shapes."
+            "High value if access exists for the Warrel Dane catalog or comparable export shapes."
         ),
     )
 
@@ -431,8 +430,7 @@ def _luminate_candidate() -> MusicDataProviderCandidate:
         ),
         constraints=("Likely expensive, enterprise-oriented, and subject to strict licensing.",),
         proof_case_relevance=(
-            "Potentially valuable, but may be less practical as the first paid source "
-            "to trial."
+            "Potentially valuable, but may be less practical as the first paid source to trial."
         ),
     )
 

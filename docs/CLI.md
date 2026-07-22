@@ -6,6 +6,22 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `spotify-playlist-access-check`
+
+Check whether the current Spotify credentials can read playlist metadata and playlist track items for one playlist ID.
+
+```sh
+uv run songtrace spotify-playlist-access-check 5cwIrjOMWTiGCYB5Z9oQix
+```
+
+This is a provider-facing diagnostic. It uses the current client-credentials access mode and reports only private-safe status and failure reason codes. It does not create evidence, search playlists, infer placement, run OAuth, print tokens, or store credentials.
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-playlist-access-check 5cwIrjOMWTiGCYB5Z9oQix --output json
+```
+
 ### `spotify-playlist-search`
 
 Search Spotify public playlists by query and verify whether a track is currently present in the returned candidate playlists.

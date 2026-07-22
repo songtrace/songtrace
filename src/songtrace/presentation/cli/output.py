@@ -10,6 +10,7 @@ from songtrace.providers import (
     AscapWorkSummary,
     SpotifyApiAccessStatus,
     SpotifyEnvironmentStatus,
+    SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
@@ -131,6 +132,34 @@ def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None
         "failure_reason": status.failure_reason,
         "missing_variables": list(status.environment.missing_variables),
         "token_request_attempted": status.token_request_attempted,
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_playlist_access_text_status(status: SpotifyPlaylistAccessStatus) -> None:
+    console.print("[bold]SongTrace Spotify Playlist Access Check[/bold]")
+    console.print()
+    console.print(f"Spotify playlist ID: {status.spotify_playlist_id}")
+    if status.playlist_name is not None:
+        console.print(f"Playlist name: {status.playlist_name}")
+    console.print(f"Access mode: {status.access_mode}")
+    console.print(f"Metadata readable: {'yes' if status.metadata_readable else 'no'}")
+    if status.metadata_failure_reason is not None:
+        console.print(f"Metadata failure: {status.metadata_failure_reason}")
+    console.print(f"Track items readable: {'yes' if status.track_items_readable else 'no'}")
+    if status.track_items_failure_reason is not None:
+        console.print(f"Track items failure: {status.track_items_failure_reason}")
+
+
+def print_spotify_playlist_access_json_status(status: SpotifyPlaylistAccessStatus) -> None:
+    payload = {
+        "access_mode": status.access_mode,
+        "metadata_failure_reason": status.metadata_failure_reason,
+        "metadata_readable": status.metadata_readable,
+        "playlist_name": status.playlist_name,
+        "spotify_playlist_id": status.spotify_playlist_id,
+        "track_items_failure_reason": status.track_items_failure_reason,
+        "track_items_readable": status.track_items_readable,
     }
     print(json.dumps(payload, sort_keys=True))
 

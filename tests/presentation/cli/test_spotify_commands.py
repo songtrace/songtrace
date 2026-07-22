@@ -6,6 +6,7 @@ import pytest
 from songtrace.application import EvidenceImporter, JsonRawEvidenceSource
 from songtrace.presentation.cli import main as cli_main
 from songtrace.providers import (
+    SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
     SpotifyPlaylistSkippedCandidate,
@@ -13,6 +14,84 @@ from songtrace.providers import (
     SpotifyTrackMetadata,
 )
 from tests.presentation.cli.fixtures import *
+
+
+def test_spotify_playlist_access_check_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def check(playlist_id: str) -> SpotifyPlaylistAccessStatus:
+        assert playlist_id == "playlist-id"
+        return SpotifyPlaylistAccessStatus(
+            spotify_playlist_id="playlist-id",
+            access_mode="client_credentials",
+            playlist_name="Hard Rock Classics",
+            metadata_readable=True,
+            track_items_readable=False,
+            track_items_failure_reason="spotify_playlist_tracks_http_error_403",
+        )
+
+    monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
+
+    result = runner.invoke(app, ["spotify-playlist-access-check", "playlist-id"])
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify Playlist Access Check" in result.stdout
+    assert "Spotify playlist ID: playlist-id" in result.stdout
+    assert "Playlist name: Hard Rock Classics" in result.stdout
+    assert "Access mode: client_credentials" in result.stdout
+    assert "Metadata readable: yes" in result.stdout
+    assert "Track items readable: no" in result.stdout
+    assert "Track items failure: spotify_playlist_tracks_http_error_403" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_access_check_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def check(_playlist_id: str) -> SpotifyPlaylistAccessStatus:
+        return SpotifyPlaylistAccessStatus(
+            spotify_playlist_id="playlist-id",
+            access_mode="client_credentials",
+            playlist_name=None,
+            metadata_readable=False,
+            metadata_failure_reason="spotify_playlist_http_error_404",
+            track_items_readable=False,
+            track_items_failure_reason="spotify_playlist_tracks_http_error_403",
+        )
+
+    monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-access-check", "playlist-id", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "access_mode": "client_credentials",
+        "metadata_failure_reason": "spotify_playlist_http_error_404",
+        "metadata_readable": False,
+        "playlist_name": None,
+        "spotify_playlist_id": "playlist-id",
+        "track_items_failure_reason": "spotify_playlist_tracks_http_error_403",
+        "track_items_readable": False,
+    }
+
+
+def test_spotify_playlist_access_check_failure_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def check(_playlist_id: str) -> SpotifyPlaylistAccessStatus:
+        raise ValueError("missing_credentials")
+
+    monkeypatch.setattr(cli_main, "check_spotify_playlist_access", check)
+
+    result = runner.invoke(app, ["spotify-playlist-access-check", "playlist-id"])
+
+    assert result.exit_code == 1
+    assert "missing_credentials" in result.stderr
+    assert "SECRET_CLIENT_ID" not in result.stderr
+    assert "SECRET_CLIENT_SECRET" not in result.stderr
+    assert "SECRET_TOKEN" not in result.stderr
+    assert "access_token" not in result.stderr
 
 
 def test_spotify_playlist_search_text_output(monkeypatch: pytest.MonkeyPatch) -> None:

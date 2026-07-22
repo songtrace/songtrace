@@ -79,6 +79,55 @@ uv run songtrace export-spotify-playlist-placement 37i9dQZF1DX0XUsuxWHRQd 7zHxne
 
 The exported record represents only the fact that the track was observed in the playlist at the supplied timestamp. It must not be treated as proof of historical add date, causal impact, or source attribution without supporting platform activity evidence.
 
+## Confirmed playlist item access limitation
+
+Local diagnostic validation has confirmed an important Spotify Web API limitation for the playlists tested during development.
+
+Tested access modes:
+
+- client credentials using `SONGTRACE_SPOTIFY_CLIENT_ID` and `SONGTRACE_SPOTIFY_CLIENT_SECRET`
+- user token using a fresh OAuth token with `playlist-read-private` and `playlist-read-collaborative` scopes
+
+Tested request shapes:
+
+- playlist metadata request
+- SongTrace's existing paged playlist track-items request
+- minimal playlist track-items request using `/tracks?limit=1` without custom field projection
+
+Observed result:
+
+| Probe | Client credentials | User token with playlist scopes |
+| --- | --- | --- |
+| Playlist metadata | Readable | Readable |
+| Paged playlist track items | `spotify_playlist_tracks_http_error_403` | `spotify_playlist_tracks_http_error_403` |
+| Minimal playlist track items | `spotify_playlist_minimal_tracks_http_error_403` | `spotify_playlist_minimal_tracks_http_error_403` |
+
+This result means the playlist item access failure is not explained by missing user-token scopes, client-credentials-only access, expired tokens, custom field projection, or pagination shape.
+
+It does **not** prove that:
+
+- the track is absent from a playlist
+- the playlist was irrelevant to a performance spike
+- Spotify evidence is useless
+- playlist attribution is impossible through other authorized or licensed sources
+
+It does mean that SongTrace should not rely on the Spotify Web API playlist item endpoint as the primary verification source for playlist placement unless future Spotify access, app status, endpoint behavior, or provider policy changes.
+
+### Product and architecture implication
+
+Spotify search and playlist metadata can still support candidate discovery, identity context, playlist naming, and investigation leads. They cannot, by themselves, become verified playlist-placement evidence when track items are inaccessible.
+
+Verified playlist placement evidence should come from a source that can actually substantiate placement, such as:
+
+- Spotify for Artists exports or reports, where available
+- distributor or label-service reports
+- commercial playlist intelligence providers such as Chartmetric, Soundcharts, Songstats, or similar services
+- user-supplied playlist placement CSV/XLSX records
+- private local artifacts or manual uploads normalized through the import boundary
+- campaign, social, video, referrer, or editorial evidence that can explain exposure timing
+
+The reasoning engine should continue to treat inaccessible provider data as missing evidence, not as negative evidence.
+
 ## Source categories
 
 Spotify-related evidence may come from more than one source category.
@@ -324,17 +373,23 @@ When exact attribution is unavailable, SongTrace should report missing evidence 
 
 A future first Spotify connector should be small. It should likely focus on one of these paths:
 
-1. **Metadata and current playlist membership probe**
-   - confirms track identity
-   - checks current accessible playlist contents
-   - produces playlist placement evidence only when directly observed
-
-2. **Spotify for Artists export/import adapter**
+1. **Spotify for Artists export/import adapter**
    - starts from user-exported account data
    - normalizes streams/saves/listeners into provider-neutral evidence
-   - avoids OAuth until file-based semantics are understood
+   - avoids deeper OAuth scope until file-based semantics are understood
 
-3. **Account-authorized analytics connector**
+2. **Metadata and playlist candidate discovery probe**
+   - confirms track identity
+   - finds candidate playlist metadata when available
+   - does not treat inaccessible playlist item data as proof of absence
+   - produces playlist placement evidence only when a source directly substantiates membership
+
+3. **Commercial or user-supplied playlist placement adapter**
+   - imports verified placement data from provider exports, licensed services, or user-maintained records
+   - preserves source provenance and timestamp semantics
+   - avoids depending on inaccessible Spotify playlist item endpoints
+
+4. **Account-authorized analytics connector**
    - uses OAuth only after the evidence semantics and local validation path are stable
    - produces normalized `RawEvidenceRecord` values
    - preserves provenance and avoids exposing Spotify-specific objects to the domain
@@ -347,7 +402,8 @@ The project should choose the first connector based on the evidence gap observed
 - Can the available exports provide both stream growth and save growth, or only stream/listener summaries?
 - What date granularity is available for historical periods relevant to the proof case?
 - Are playlist source breakdowns available directly, or only through third-party playlist intelligence providers?
-- Can current playlist API data help the historical proof case, or will it mostly help future monitoring?
+- Can Spotify for Artists or distributor exports identify playlist-driven streams even when playlist item endpoints are inaccessible?
+- Can current playlist API metadata help candidate discovery, or will verified placement mostly require exports, licensed providers, or user-supplied records?
 - Which identifiers are most reliable for cross-source matching: ISRC, Spotify track ID, artist/title, or a combination?
 - What data can be stored or displayed under Spotify's terms and the user's account permissions?
 

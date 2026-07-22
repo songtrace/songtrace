@@ -115,6 +115,7 @@ The data-source matrix maps provider-neutral evidence needs to likely source cat
 - User-owned imports and distributor exports are likely the strongest near-term path for account-specific metrics.
 - Public APIs are useful but should not be assumed to expose every metric needed for reasoning.
 - OAuth APIs and provider subscriptions can expand access, but they should enter through Evidence Connectors and normalized evidence boundaries.
+- Provider metadata access is not the same as evidence access. For example, local Spotify validation showed playlist metadata could be read while playlist track items returned `403` under both client credentials and scoped user-token access. SongTrace should treat that as missing verification evidence, not proof that a track was absent.
 - Commercial providers may accelerate coverage, but SongTrace should evaluate them using evidence value, licensing clarity, freshness, historical depth, and provider-neutral fit.
 - Data-source uncertainty should be documented as missing or weak evidence rather than hidden behind confident conclusions.
 

@@ -2,7 +2,7 @@ import json
 
 from rich.console import Console
 
-from songtrace.application import EvidenceImportBatch, RawEvidenceRecord
+from songtrace.application import EvidenceImportBatch, RankedMusicDataProvider, RawEvidenceRecord
 from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
@@ -20,6 +20,62 @@ from songtrace.providers import (
 )
 
 console = Console()
+
+
+def print_music_data_provider_ranking_text_result(
+    ranked_providers: tuple[RankedMusicDataProvider, ...],
+) -> None:
+    console.print("[bold]SongTrace Music Data Provider Ranking[/bold]")
+    console.print()
+    console.print("Purpose: proof_case_investigation")
+    console.print("Note: ranking is deterministic selection guidance, not connector availability.")
+
+    for provider in ranked_providers:
+        candidate = provider.candidate
+        console.print()
+        console.print(f"{provider.rank}. {candidate.name}")
+        console.print(f"   Score: {provider.score}")
+        console.print(
+            "   Access: " + ", ".join(access_mode.value for access_mode in candidate.access_modes)
+        )
+        console.print(
+            "   Formats: "
+            + ", ".join(data_format.value for data_format in candidate.likely_formats)
+        )
+        console.print(
+            "   Capabilities: "
+            + ", ".join(capability.value for capability in candidate.capabilities)
+        )
+        console.print(f"   Relevance: {candidate.proof_case_relevance}")
+
+
+def print_music_data_provider_ranking_json_result(
+    ranked_providers: tuple[RankedMusicDataProvider, ...],
+) -> None:
+    payload = {
+        "purpose": "proof_case_investigation",
+        "providers": [
+            {
+                "access_modes": [
+                    access_mode.value for access_mode in provider.candidate.access_modes
+                ],
+                "capabilities": [
+                    capability.value for capability in provider.candidate.capabilities
+                ],
+                "constraints": list(provider.candidate.constraints),
+                "likely_formats": [
+                    data_format.value for data_format in provider.candidate.likely_formats
+                ],
+                "name": provider.candidate.name,
+                "proof_case_relevance": provider.candidate.proof_case_relevance,
+                "rank": provider.rank,
+                "score": provider.score,
+                "strengths": list(provider.candidate.strengths),
+            }
+            for provider in ranked_providers
+        ],
+    }
+    print(json.dumps(payload, sort_keys=True))
 
 
 def print_investigation_text_result(

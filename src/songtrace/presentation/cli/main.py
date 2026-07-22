@@ -4,7 +4,12 @@ from typing import Annotated
 import typer
 
 from songtrace import __version__
-from songtrace.application import InvestigationService, ObservationExtractor, SimpleInvestigator
+from songtrace.application import (
+    InvestigationService,
+    ObservationExtractor,
+    SimpleInvestigator,
+    rank_music_data_providers,
+)
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.track import TrackIdentity
 from songtrace.presentation.cli.errors import print_source_error
@@ -27,6 +32,8 @@ from songtrace.presentation.cli.output import (
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
     print_investigation_text_result,
+    print_music_data_provider_ranking_json_result,
+    print_music_data_provider_ranking_text_result,
     print_spotify_api_access_json_status,
     print_spotify_api_access_text_status,
     print_spotify_authorization_url_json_result,
@@ -95,6 +102,28 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("rank-music-data-providers")
+def rank_music_data_providers_command(
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Rank high-value music data provider candidates for proof-case investigation."""
+
+    output_format = parse_output_format(output)
+    ranked_providers = rank_music_data_providers()
+
+    match output_format:
+        case "text":
+            print_music_data_provider_ranking_text_result(ranked_providers)
+        case "json":
+            print_music_data_provider_ranking_json_result(ranked_providers)
 
 
 @app.command("spotify-user-auth-url")

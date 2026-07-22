@@ -6,6 +6,22 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `rank-music-data-providers`
+
+Rank high-value music data provider candidates for the current proof-case investigation.
+
+```sh
+uv run songtrace rank-music-data-providers
+```
+
+This command is deterministic and private-safe. It does not call provider APIs, read private files, purchase subscriptions, validate credentials, or implement connectors. It exists to help decide which richer evidence source should be trialed or profiled next.
+
+For machine-readable output:
+
+```sh
+uv run songtrace rank-music-data-providers --output json
+```
+
 ### `spotify-user-auth-url`
 
 Generate a Spotify authorization URL for local diagnostic user-token testing.

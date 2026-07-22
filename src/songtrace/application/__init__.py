@@ -9,6 +9,15 @@ from songtrace.application.import_validation import EvidenceImportError, ImportV
 from songtrace.application.investigation_result import InvestigationResult
 from songtrace.application.investigation_service import InvestigationService
 from songtrace.application.json_raw_evidence_source import JsonRawEvidenceSource
+from songtrace.application.music_data_provider_selection import (
+    MusicDataAccessMode,
+    MusicDataFormat,
+    MusicDataProviderCandidate,
+    MusicDataProviderCatalog,
+    MusicEvidenceCapability,
+    RankedMusicDataProvider,
+    rank_music_data_providers,
+)
 from songtrace.application.observation_extractor import ObservationExtractor
 from songtrace.application.platform_activity_csv_raw_evidence_source import (
     PlatformActivityCsvRawEvidenceSource,
@@ -34,12 +43,19 @@ __all__ = [
     "InvestigationResult",
     "InvestigationService",
     "JsonRawEvidenceSource",
+    "MusicDataAccessMode",
+    "MusicDataFormat",
+    "MusicDataProviderCandidate",
+    "MusicDataProviderCatalog",
+    "MusicEvidenceCapability",
     "ObservationExtractor",
     "PlatformActivityCsvRawEvidenceSource",
     "PlaylistPlacementCsvRawEvidenceSource",
+    "RankedMusicDataProvider",
     "RawEvidenceRecord",
     "RawEvidenceSource",
     "RuleCatalog",
     "SimpleInvestigator",
     "XlsxRawEvidenceSource",
+    "rank_music_data_providers",
 ]

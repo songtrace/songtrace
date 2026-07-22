@@ -14,7 +14,15 @@ Check whether the current Spotify credentials can read playlist metadata and pla
 uv run songtrace spotify-playlist-access-check 5cwIrjOMWTiGCYB5Z9oQix
 ```
 
-This is a provider-facing diagnostic. It uses the current client-credentials access mode and reports only private-safe status and failure reason codes. It does not create evidence, search playlists, infer placement, run OAuth, print tokens, or store credentials.
+This is a provider-facing diagnostic. By default, it uses the current client-credentials access mode and reports only private-safe status and failure reason codes. It does not create evidence, search playlists, infer placement, run OAuth, print tokens, or store credentials.
+
+To check access with a locally supplied Spotify user access token, set `SONGTRACE_SPOTIFY_USER_ACCESS_TOKEN` and pass `--access-mode user-token`:
+
+```sh
+uv run songtrace spotify-playlist-access-check 5cwIrjOMWTiGCYB5Z9oQix --access-mode user-token
+```
+
+User-token mode uses the supplied token only for the current request. SongTrace does not refresh, persist, or print the token.
 
 For machine-readable output:
 

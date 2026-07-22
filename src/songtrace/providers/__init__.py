@@ -22,6 +22,7 @@ from songtrace.providers.spotify_connector_descriptor import spotify_connector_d
 from songtrace.providers.spotify_environment import (
     SPOTIFY_CLIENT_ID_ENV,
     SPOTIFY_CLIENT_SECRET_ENV,
+    SPOTIFY_USER_ACCESS_TOKEN_ENV,
     SpotifyEnvironmentStatus,
     validate_spotify_environment,
 )
@@ -56,6 +57,7 @@ from songtrace.providers.spotify_track_metadata_export import (
 __all__ = [
     "SPOTIFY_CLIENT_ID_ENV",
     "SPOTIFY_CLIENT_SECRET_ENV",
+    "SPOTIFY_USER_ACCESS_TOKEN_ENV",
     "AscapCsvColumnProfile",
     "AscapCsvFileProfile",
     "AscapCsvLayoutProfile",

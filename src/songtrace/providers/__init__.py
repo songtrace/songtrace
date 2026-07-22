@@ -14,9 +14,11 @@ from songtrace.providers.ascap_international_incoming_csv_raw_evidence_source im
     AscapInternationalIncomingCsvRawEvidenceSource,
 )
 from songtrace.providers.ascap_work_summary import (
+    AscapMusicEventReport,
     AscapPlatformSourcesSummary,
     AscapPlatformSourceSummary,
     AscapWorkSummary,
+    summarize_ascap_music_event,
     summarize_ascap_platform_sources,
     summarize_ascap_work,
 )
@@ -86,6 +88,7 @@ __all__ = [
     "AscapCsvRowGrainProfile",
     "AscapCsvStatementTypeProfile",
     "AscapInternationalIncomingCsvRawEvidenceSource",
+    "AscapMusicEventReport",
     "AscapPlatformSourceSummary",
     "AscapPlatformSourcesSummary",
     "AscapWorkSummary",
@@ -114,6 +117,7 @@ __all__ = [
     "spotify_playlist_placement_raw_records_to_json_text",
     "spotify_track_metadata_raw_records_to_json_text",
     "spotify_track_metadata_to_raw_record",
+    "summarize_ascap_music_event",
     "summarize_ascap_platform_sources",
     "summarize_ascap_work",
     "validate_spotify_api_access",

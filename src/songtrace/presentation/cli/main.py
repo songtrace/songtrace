@@ -29,6 +29,7 @@ from songtrace.presentation.cli.options import (
 )
 from songtrace.presentation.cli.output import (
     console,
+    print_ascap_music_event_text_result,
     print_ascap_platform_sources_text_result,
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
@@ -69,6 +70,7 @@ from songtrace.providers import (
     spotify_playlist_placement_raw_records_to_json_text,
     spotify_track_metadata_raw_records_to_json_text,
     spotify_track_metadata_to_raw_record,
+    summarize_ascap_music_event,
     summarize_ascap_platform_sources,
     summarize_ascap_work,
     validate_spotify_api_access,
@@ -1068,6 +1070,69 @@ def profile_ascap_csv_layout_command(
         raise typer.Exit(1) from error
 
     print(profile.to_json())
+
+
+@app.command("ascap-music-event-report")
+def ascap_music_event_report_command(
+    paths: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            readable=True,
+            help="One or more ASCAP CSV files or directories containing ASCAP CSV files.",
+        ),
+    ],
+    work_id: Annotated[
+        str | None,
+        typer.Option(
+            "--work-id",
+            help=("Exact ASCAP work ID to report. The value is used for matching but not printed."),
+        ),
+    ] = None,
+    work_title: Annotated[
+        str | None,
+        typer.Option(
+            "--work-title",
+            help=(
+                "Case-insensitive work title query. The value is used for matching but not printed."
+            ),
+        ),
+    ] = None,
+    include_sources: Annotated[
+        bool,
+        typer.Option(
+            "--include-sources",
+            help="Include opt-in aggregate platform source labels, plays, dollars, and counts.",
+        ),
+    ] = False,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Report an ASCAP-backed music event for one work."""
+
+    output_format = parse_output_format(output)
+    try:
+        report = summarize_ascap_music_event(
+            tuple(paths),
+            work_id=work_id,
+            work_title_query=work_title,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_ascap_music_event_text_result(report, include_sources=include_sources)
+        case "json":
+            print(report.to_json(include_sources=include_sources))
 
 
 @app.command("summarize-ascap-work")

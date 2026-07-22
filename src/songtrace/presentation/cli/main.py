@@ -37,6 +37,8 @@ from songtrace.presentation.cli.output import (
     print_spotify_playlist_access_text_status,
     print_spotify_playlist_discovery_json_result,
     print_spotify_playlist_discovery_text_result,
+    print_spotify_playlist_items_diagnostic_json_result,
+    print_spotify_playlist_items_diagnostic_text_result,
     print_spotify_playlist_membership_json_result,
     print_spotify_playlist_membership_text_result,
     print_spotify_track_metadata_json_result,
@@ -49,6 +51,7 @@ from songtrace.presentation.cli.output import (
 from songtrace.providers import (
     build_spotify_authorization_url,
     check_spotify_playlist_access,
+    diagnose_spotify_playlist_items,
     discover_spotify_playlist_track_memberships_for_queries,
     exchange_spotify_authorization_code,
     lookup_spotify_playlist_track_membership,
@@ -175,6 +178,47 @@ def spotify_user_token_from_code_command(
                 status,
                 include_access_token=print_export_command,
             )
+
+
+@app.command("spotify-playlist-items-diagnostic")
+def spotify_playlist_items_diagnostic_command(
+    spotify_playlist_id: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist ID to diagnose track-item access for."),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+    access_mode: Annotated[
+        str,
+        typer.Option(
+            "--access-mode",
+            help="Spotify access mode: client-credentials or user-token.",
+        ),
+    ] = "client-credentials",
+) -> None:
+    """Diagnose Spotify playlist track-item access with multiple request shapes."""
+
+    output_format = parse_output_format(output)
+    parsed_access_mode = _parse_spotify_playlist_access_mode(access_mode)
+    try:
+        result = diagnose_spotify_playlist_items(
+            spotify_playlist_id,
+            access_mode=parsed_access_mode,
+        )
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_playlist_items_diagnostic_text_result(result)
+        case "json":
+            print_spotify_playlist_items_diagnostic_json_result(result)
 
 
 @app.command("spotify-playlist-access-check")

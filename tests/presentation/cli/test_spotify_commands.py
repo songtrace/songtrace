@@ -9,6 +9,7 @@ from songtrace.providers import (
     SpotifyAuthorizationUrl,
     SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
+    SpotifyPlaylistItemsDiagnostic,
     SpotifyPlaylistSearchCandidate,
     SpotifyPlaylistSkippedCandidate,
     SpotifyPlaylistTrackMembership,
@@ -171,6 +172,101 @@ def test_spotify_user_token_from_code_failure_output_is_private_safe(
     assert "spotify_user_token_http_error_400" in result.stdout
     assert "SECRET" not in result.stdout
     assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_items_diagnostic_text_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def diagnose(playlist_id: str, *, access_mode: str) -> SpotifyPlaylistItemsDiagnostic:
+        assert playlist_id == "playlist-id"
+        assert access_mode == "user_token"
+        return SpotifyPlaylistItemsDiagnostic(
+            spotify_playlist_id="playlist-id",
+            access_mode="user_token",
+            playlist_name="Hard Rock Classics",
+            metadata_readable=True,
+            track_pages_readable=False,
+            track_pages_failure_reason="spotify_playlist_tracks_http_error_403",
+            minimal_track_items_readable=False,
+            minimal_track_items_failure_reason="spotify_playlist_minimal_tracks_http_error_403",
+        )
+
+    monkeypatch.setattr(cli_main, "diagnose_spotify_playlist_items", diagnose)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-items-diagnostic", "playlist-id", "--access-mode", "user-token"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify Playlist Items Diagnostic" in result.stdout
+    assert "Spotify playlist ID: playlist-id" in result.stdout
+    assert "Playlist name: Hard Rock Classics" in result.stdout
+    assert "Access mode: user_token" in result.stdout
+    assert "Metadata readable: yes" in result.stdout
+    assert "Track pages readable: no" in result.stdout
+    assert "Track pages failure: spotify_playlist_tracks_http_error_403" in result.stdout
+    assert "Minimal track items readable: no" in result.stdout
+    assert (
+        "Minimal track items failure: spotify_playlist_minimal_tracks_http_error_403"
+        in result.stdout
+    )
+    assert "SECRET_USER_TOKEN" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_playlist_items_diagnostic_json_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def diagnose(playlist_id: str, *, access_mode: str) -> SpotifyPlaylistItemsDiagnostic:
+        return SpotifyPlaylistItemsDiagnostic(
+            spotify_playlist_id=playlist_id,
+            access_mode=access_mode,
+            metadata_readable=True,
+            track_pages_readable=True,
+            minimal_track_items_readable=True,
+        )
+
+    monkeypatch.setattr(cli_main, "diagnose_spotify_playlist_items", diagnose)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-items-diagnostic", "playlist-id", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "access_mode": "client_credentials",
+        "metadata_failure_reason": None,
+        "metadata_readable": True,
+        "minimal_track_items_failure_reason": None,
+        "minimal_track_items_readable": True,
+        "playlist_name": None,
+        "spotify_playlist_id": "playlist-id",
+        "track_pages_failure_reason": None,
+        "track_pages_readable": True,
+    }
+
+
+def test_spotify_playlist_items_diagnostic_failure_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def diagnose(_playlist_id: str, *, access_mode: str) -> SpotifyPlaylistItemsDiagnostic:
+        assert access_mode == "user_token"
+        raise ValueError("missing_user_token")
+
+    monkeypatch.setattr(cli_main, "diagnose_spotify_playlist_items", diagnose)
+
+    result = runner.invoke(
+        app,
+        ["spotify-playlist-items-diagnostic", "playlist-id", "--access-mode", "user-token"],
+    )
+
+    assert result.exit_code == 1
+    assert "missing_user_token" in result.stderr
+    assert "SECRET_USER_TOKEN" not in result.stderr
+    assert "access_token" not in result.stderr
 
 
 def test_spotify_playlist_access_check_text_output(monkeypatch: pytest.MonkeyPatch) -> None:

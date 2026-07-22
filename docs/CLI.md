@@ -58,6 +58,30 @@ For machine-readable private-safe output:
 uv run songtrace spotify-user-token-from-code "authorization-code-from-redirect-url" --output json
 ```
 
+### `spotify-playlist-items-diagnostic`
+
+Diagnose Spotify playlist track-item access with multiple private-safe request shapes.
+
+```sh
+uv run songtrace spotify-playlist-items-diagnostic 5cwIrjOMWTiGCYB5Z9oQix
+```
+
+To run the same diagnostic with a locally supplied user token:
+
+```sh
+uv run songtrace spotify-playlist-items-diagnostic 5cwIrjOMWTiGCYB5Z9oQix --access-mode user-token
+```
+
+This diagnostic checks playlist metadata, the existing paged track-items request used by SongTrace, and a minimal playlist track-items request. It reports only safe status and reason codes, such as `spotify_playlist_tracks_http_error_403` or `spotify_playlist_minimal_tracks_http_error_403`. It does not print tokens, auth headers, raw Spotify payloads, user IDs, or provider response bodies.
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-playlist-items-diagnostic 5cwIrjOMWTiGCYB5Z9oQix --output json
+```
+
+This command is diagnostic only. It does not create evidence, search playlists, infer placement, persist tokens, or change the investigation pipeline.
+
 ### `spotify-playlist-access-check`
 
 Check whether the current Spotify credentials can read playlist metadata and playlist track items for one playlist ID.

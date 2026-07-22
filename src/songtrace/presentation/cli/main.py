@@ -31,6 +31,8 @@ from songtrace.presentation.cli.output import (
     print_spotify_api_access_text_status,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
+    print_spotify_playlist_access_json_status,
+    print_spotify_playlist_access_text_status,
     print_spotify_playlist_discovery_json_result,
     print_spotify_playlist_discovery_text_result,
     print_spotify_playlist_membership_json_result,
@@ -41,6 +43,7 @@ from songtrace.presentation.cli.output import (
     print_validation_text_result,
 )
 from songtrace.providers import (
+    check_spotify_playlist_access,
     discover_spotify_playlist_track_memberships_for_queries,
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
@@ -83,6 +86,36 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("spotify-playlist-access-check")
+def spotify_playlist_access_check_command(
+    spotify_playlist_id: Annotated[
+        str,
+        typer.Argument(help="Spotify playlist ID to check with current credentials."),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Check current Spotify playlist metadata and track-item access."""
+
+    output_format = parse_output_format(output)
+    try:
+        status = check_spotify_playlist_access(spotify_playlist_id)
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_playlist_access_text_status(status)
+        case "json":
+            print_spotify_playlist_access_json_status(status)
 
 
 @app.command("export-spotify-playlist-placement")

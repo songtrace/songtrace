@@ -29,6 +29,7 @@ from songtrace.presentation.cli.options import (
 )
 from songtrace.presentation.cli.output import (
     console,
+    print_ascap_platform_sources_text_result,
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
     print_investigation_text_result,
@@ -68,6 +69,7 @@ from songtrace.providers import (
     spotify_playlist_placement_raw_records_to_json_text,
     spotify_track_metadata_raw_records_to_json_text,
     spotify_track_metadata_to_raw_record,
+    summarize_ascap_platform_sources,
     summarize_ascap_work,
     validate_spotify_api_access,
     validate_spotify_environment,
@@ -1147,6 +1149,71 @@ def summarize_ascap_work_command(
                     include_attribution_gaps=include_attribution_gaps,
                 )
             )
+
+
+@app.command("summarize-ascap-platform-sources")
+def summarize_ascap_platform_sources_command(
+    paths: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            readable=True,
+            help="One or more ASCAP CSV files or directories containing ASCAP CSV files.",
+        ),
+    ],
+    work_id: Annotated[
+        str | None,
+        typer.Option(
+            "--work-id",
+            help=(
+                "Exact ASCAP work ID to summarize. The value is used for matching but not printed."
+            ),
+        ),
+    ] = None,
+    work_title: Annotated[
+        str | None,
+        typer.Option(
+            "--work-title",
+            help=(
+                "Case-insensitive work title query. The value is used for matching but not printed."
+            ),
+        ),
+    ] = None,
+    include_sources: Annotated[
+        bool,
+        typer.Option(
+            "--include-sources",
+            help="Include opt-in aggregate platform source labels, plays, dollars, and counts.",
+        ),
+    ] = False,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Summarize ASCAP Music User rows as platform source attribution evidence."""
+
+    output_format = parse_output_format(output)
+    try:
+        summary = summarize_ascap_platform_sources(
+            tuple(paths),
+            work_id=work_id,
+            work_title_query=work_title,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_ascap_platform_sources_text_result(summary, include_sources=include_sources)
+        case "json":
+            print(summary.to_json(include_sources=include_sources))
 
 
 @app.command("validate-evidence")

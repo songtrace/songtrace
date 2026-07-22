@@ -573,6 +573,35 @@ To see what upstream evidence is still needed before SongTrace can identify an e
 uv run songtrace summarize-ascap-work .songtrace-private/ascap --work-id "<private-work-id>" --include-attribution-gaps
 ```
 
+### `summarize-ascap-platform-sources`
+
+Summarize ASCAP domestic `Music User` rows as platform-level source attribution evidence for a specific work. This command helps distinguish platform attribution from deeper causal attribution: ASCAP may identify platforms such as Spotify, TikTok, Apple, Pandora, YouTube, or Amazon, while playlist placements, social posts, campaigns, and in-platform traffic sources may still be unknown.
+
+```sh
+uv run songtrace summarize-ascap-platform-sources .songtrace-private/ascap --work-id "<private-work-id>"
+```
+
+By default, the command prints safe aggregate counts and a source-attribution status without exposing source labels, work IDs, work titles, filenames, row-level values, account IDs, party names, or writer names.
+
+For local-only exploratory analysis, opt in to aggregate platform source labels, play totals, dollar totals, row counts, period counts, music user genres, broadcast media, and usage types:
+
+```sh
+uv run songtrace summarize-ascap-platform-sources .songtrace-private/ascap \
+  --work-id "<private-work-id>" \
+  --include-sources
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace summarize-ascap-platform-sources .songtrace-private/ascap \
+  --work-id "<private-work-id>" \
+  --include-sources \
+  --output json
+```
+
+When domestic `Music User` rows are found, the command reports `platform_sources_found_causal_origin_unknown`, meaning SongTrace has platform-level ASCAP source evidence but still needs deeper upstream evidence such as playlist placement evidence, social post evidence, video traffic source evidence, in-platform source breakdowns, or campaign activity logs.
+
 Attribution gaps are deterministic guidance only. ASCAP royalty statements are downstream evidence; by themselves they cannot identify a specific playlist, social post, video, campaign, algorithmic source, or distributor usage source.
 
 This is a private local analysis helper. It does not normalize rows into `RawEvidenceRecord`, create domain `Evidence`, run investigations, parse PDFs, reconcile statements, or generate conclusions.

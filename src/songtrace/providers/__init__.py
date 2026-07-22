@@ -13,7 +13,13 @@ from songtrace.providers.ascap_csv_raw_evidence_source import AscapCsvRawEvidenc
 from songtrace.providers.ascap_international_incoming_csv_raw_evidence_source import (
     AscapInternationalIncomingCsvRawEvidenceSource,
 )
-from songtrace.providers.ascap_work_summary import AscapWorkSummary, summarize_ascap_work
+from songtrace.providers.ascap_work_summary import (
+    AscapPlatformSourcesSummary,
+    AscapPlatformSourceSummary,
+    AscapWorkSummary,
+    summarize_ascap_platform_sources,
+    summarize_ascap_work,
+)
 from songtrace.providers.spotify_api_access import (
     SpotifyApiAccessStatus,
     validate_spotify_api_access,
@@ -80,6 +86,8 @@ __all__ = [
     "AscapCsvRowGrainProfile",
     "AscapCsvStatementTypeProfile",
     "AscapInternationalIncomingCsvRawEvidenceSource",
+    "AscapPlatformSourceSummary",
+    "AscapPlatformSourcesSummary",
     "AscapWorkSummary",
     "SpotifyApiAccessStatus",
     "SpotifyAuthorizationUrl",
@@ -106,6 +114,7 @@ __all__ = [
     "spotify_playlist_placement_raw_records_to_json_text",
     "spotify_track_metadata_raw_records_to_json_text",
     "spotify_track_metadata_to_raw_record",
+    "summarize_ascap_platform_sources",
     "summarize_ascap_work",
     "validate_spotify_api_access",
     "validate_spotify_environment",

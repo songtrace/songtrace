@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Literal
 
@@ -60,6 +62,71 @@ _ATTRIBUTION_MISSING_UPSTREAM_EVIDENCE = (
     "video_traffic_source_evidence",
 )
 _NO_MATCH_MISSING_EVIDENCE = ("matching_royalty_activity",)
+_CAUSAL_ATTRIBUTION_MISSING_EVIDENCE = (
+    "campaign_activity_logs",
+    "in_platform_source_breakdowns",
+    "playlist_placement_evidence",
+    "social_post_evidence",
+    "video_traffic_source_evidence",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AscapPlatformSourceSummary:
+    """Aggregate platform source summary for matching ASCAP domestic rows."""
+
+    music_user: str
+    music_user_genre: str
+    performance_source_broadcast_medium: str
+    performance_type_usage: str
+    row_count: int
+    period_count: int
+    number_of_plays: Decimal
+    dollars: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class AscapPlatformSourcesSummary:
+    """Private-safe platform attribution summary for a work across ASCAP CSVs."""
+
+    scanned_file_count: int
+    matched_file_count: int
+    matched_row_count: int
+    platform_source_count: int
+    platform_sources: tuple[AscapPlatformSourceSummary, ...]
+    source_attribution_status: str
+    missing_upstream_evidence: tuple[str, ...]
+
+    def to_json(self, *, include_sources: bool = False) -> str:
+        """Serialize the platform summary as deterministic JSON."""
+
+        payload: dict[str, Any] = {
+            "matched_file_count": self.matched_file_count,
+            "matched_row_count": self.matched_row_count,
+            "platform_source_count": self.platform_source_count,
+            "scanned_file_count": self.scanned_file_count,
+            "source_attribution": {
+                "missing_upstream_evidence": self.missing_upstream_evidence,
+                "status": self.source_attribution_status,
+            },
+        }
+        if include_sources:
+            payload["platform_sources"] = [
+                {
+                    "dollars": _format_decimal(source.dollars),
+                    "music_user": source.music_user,
+                    "music_user_genre": source.music_user_genre,
+                    "number_of_plays": _format_decimal(source.number_of_plays),
+                    "performance_source_broadcast_medium": (
+                        source.performance_source_broadcast_medium
+                    ),
+                    "performance_type_usage": source.performance_type_usage,
+                    "period_count": source.period_count,
+                    "row_count": source.row_count,
+                }
+                for source in self.platform_sources
+            ]
+        return json.dumps(payload, sort_keys=True)
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,6 +226,102 @@ def summarize_ascap_work(
         distribution_period_count=len(distribution_period_counts),
         territory_count=len(territory_counts),
         revenue_class_count=len(revenue_class_counts),
+    )
+
+
+def summarize_ascap_platform_sources(
+    paths: tuple[Path, ...],
+    *,
+    work_id: str | None = None,
+    work_title_query: str | None = None,
+) -> AscapPlatformSourcesSummary:
+    """Summarize ASCAP domestic Music User rows as platform attribution evidence."""
+
+    normalized_work_id = _optional_nonblank(work_id)
+    normalized_title_query = _optional_nonblank(work_title_query)
+    if normalized_work_id is None and normalized_title_query is None:
+        raise ValueError("either work_id or work_title_query is required")
+
+    csv_paths = _csv_paths(paths)
+    files = tuple(_read_supported_file(path) for path in csv_paths)
+
+    matched_file_count = 0
+    matched_row_count = 0
+    groups: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+
+    for file_rows in files:
+        file_matched = False
+        for row in file_rows.rows:
+            if not _matches(row, work_id=normalized_work_id, title_query=normalized_title_query):
+                continue
+
+            file_matched = True
+            matched_row_count += 1
+            if file_rows.statement_type != "domestic":
+                continue
+
+            key = (
+                row.get("Music User", ""),
+                row.get("Music User Genre", ""),
+                row.get("Performance Source/Broadcast Medium", ""),
+                row.get("Performance Type (Usage)", ""),
+            )
+            group = groups.setdefault(
+                key,
+                {
+                    "dollars": Decimal("0"),
+                    "number_of_plays": Decimal("0"),
+                    "periods": set(),
+                    "row_count": 0,
+                },
+            )
+            group["row_count"] += 1
+            group["number_of_plays"] += _parse_decimal(row.get("Number of Plays", ""))
+            group["dollars"] += _parse_decimal(row.get("Dollars", ""))
+            period = _distribution_period(file_rows.statement_type, row)
+            if period is not None and period.strip():
+                group["periods"].add(period.strip())
+
+        if file_matched:
+            matched_file_count += 1
+
+    platform_sources = tuple(
+        sorted(
+            (
+                AscapPlatformSourceSummary(
+                    music_user=music_user,
+                    music_user_genre=music_user_genre,
+                    performance_source_broadcast_medium=medium,
+                    performance_type_usage=usage,
+                    row_count=int(group["row_count"]),
+                    period_count=len(group["periods"]),
+                    number_of_plays=group["number_of_plays"],
+                    dollars=group["dollars"],
+                )
+                for (music_user, music_user_genre, medium, usage), group in groups.items()
+            ),
+            key=lambda source: (
+                -source.number_of_plays,
+                -source.dollars,
+                source.music_user.casefold(),
+                source.music_user_genre.casefold(),
+                source.performance_source_broadcast_medium.casefold(),
+                source.performance_type_usage.casefold(),
+            ),
+        )
+    )
+    source_attribution_status, missing_upstream_evidence = _platform_source_attribution_gap(
+        matched_row_count, len(platform_sources)
+    )
+
+    return AscapPlatformSourcesSummary(
+        scanned_file_count=len(files),
+        matched_file_count=matched_file_count,
+        matched_row_count=matched_row_count,
+        platform_source_count=len(platform_sources),
+        platform_sources=platform_sources,
+        source_attribution_status=source_attribution_status,
+        missing_upstream_evidence=missing_upstream_evidence,
     )
 
 
@@ -269,6 +432,39 @@ def _source_attribution_gap(matched_row_count: int) -> tuple[str, tuple[str, ...
         "royalty_activity_found_upstream_source_unknown",
         _ATTRIBUTION_MISSING_UPSTREAM_EVIDENCE,
     )
+
+
+def _platform_source_attribution_gap(
+    matched_row_count: int, platform_source_count: int
+) -> tuple[str, tuple[str, ...]]:
+    if matched_row_count == 0:
+        return "no_matching_royalty_activity", _NO_MATCH_MISSING_EVIDENCE
+    if platform_source_count == 0:
+        return (
+            "royalty_activity_found_platform_source_unavailable",
+            ("domestic_ascap_music_user_rows",),
+        )
+    return (
+        "platform_sources_found_causal_origin_unknown",
+        _CAUSAL_ATTRIBUTION_MISSING_EVIDENCE,
+    )
+
+
+def _parse_decimal(value: str) -> Decimal:
+    cleaned = value.strip().replace(",", "").replace("$", "")
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        cleaned = f"-{cleaned[1:-1]}"
+    cleaned = re.sub(r"[^0-9.\-]", "", cleaned)
+    if cleaned in {"", "-", "."}:
+        return Decimal("0")
+    try:
+        return Decimal(cleaned)
+    except InvalidOperation:
+        return Decimal("0")
+
+
+def _format_decimal(value: Decimal) -> str:
+    return format(value.normalize(), "f")
 
 
 def _to_jsonable(

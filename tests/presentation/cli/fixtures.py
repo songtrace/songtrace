@@ -310,6 +310,11 @@ def _ascap_layout_a_row(
     work_id: str = "SECRET_WORK_ID",
     performance_quarter: str = "2Q2026",
     performance_type: str = "Performance",
+    music_user: str = "SECRET_USER",
+    music_user_genre: str = "Digital",
+    performance_source_broadcast_medium: str = "Streaming",
+    number_of_plays: str = "10",
+    dollars: str = "123.45",
 ) -> dict[str, str]:
     return {
         "DistributionYear": "2026",
@@ -318,15 +323,15 @@ def _ascap_layout_a_row(
         "Statement Recipient Name": "SECRET_RECIPIENT",
         "Party ID": "SECRET_PARTY_ID",
         "Party Name": "SECRET_PARTY",
-        "Performance Source/Broadcast Medium": "Streaming",
-        "Music User Genre": "Digital",
-        "Music User": "SECRET_USER",
+        "Performance Source/Broadcast Medium": performance_source_broadcast_medium,
+        "Music User Genre": music_user_genre,
+        "Music User": music_user,
         "Work ID": work_id,
         "Work Title": "SECRET_WORK_TITLE",
-        "Number of Plays": "10",
+        "Number of Plays": number_of_plays,
         "Performance Type (Usage)": performance_type,
         "Credits": "1.23",
-        "Dollars": "123.45",
+        "Dollars": dollars,
         "Performance Quarter": performance_quarter,
     }
 

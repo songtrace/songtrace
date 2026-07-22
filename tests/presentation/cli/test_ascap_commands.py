@@ -312,6 +312,130 @@ def test_summarize_ascap_work_json_attribution_gaps_are_deterministic(
     assert "123.45" not in result.stdout
 
 
+def test_summarize_ascap_platform_sources_default_text_omits_source_labels(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(path, _ASCAP_LAYOUT_A_COLUMNS, [_ascap_layout_a_row(music_user="SPOTIFY")])
+
+    result = runner.invoke(
+        app,
+        ["summarize-ascap-platform-sources", str(path), "--work-id", "SECRET_WORK_ID"],
+    )
+
+    assert result.exit_code == 0
+    assert "SongTrace ASCAP Platform Sources" in result.stdout
+    assert "Matched rows: 1" in result.stdout
+    assert "Platform sources: 1" in result.stdout
+    assert "Status: platform_sources_found_causal_origin_unknown" in result.stdout
+    assert "SPOTIFY" not in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+    assert "123.45" not in result.stdout
+
+
+def test_summarize_ascap_platform_sources_text_sources_are_opt_in(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(
+        path,
+        _ASCAP_LAYOUT_A_COLUMNS,
+        [
+            _ascap_layout_a_row(
+                music_user="SPOTIFY",
+                music_user_genre="Interactive",
+                performance_source_broadcast_medium="GN-IS",
+                number_of_plays="100",
+                dollars="10.25",
+            ),
+            _ascap_layout_a_row(
+                music_user="TIKTOK",
+                music_user_genre="Audio and Music Videos",
+                performance_source_broadcast_medium="GN-AM",
+                number_of_plays="250",
+                dollars="0.50",
+            ),
+            _ascap_layout_a_row(work_id="OTHER_WORK", music_user="PRIVATE_OTHER"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-platform-sources",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-sources",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Platform source breakdown" in result.stdout
+    assert "- TIKTOK: 250 plays, $0.50" in result.stdout
+    assert "- SPOTIFY: 100 plays, $10.25" in result.stdout
+    assert result.stdout.index("TIKTOK") < result.stdout.index("SPOTIFY")
+    assert "PRIVATE_OTHER" not in result.stdout
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+
+
+def test_summarize_ascap_platform_sources_json_sources_are_deterministic(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "domestic.csv"
+    _write_table(
+        path,
+        _ASCAP_LAYOUT_A_COLUMNS,
+        [
+            _ascap_layout_a_row(music_user="SPOTIFY", number_of_plays="100", dollars="10.25"),
+            _ascap_layout_a_row(music_user="SPOTIFY", number_of_plays="50", dollars="5.25"),
+        ],
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "summarize-ascap-platform-sources",
+            str(path),
+            "--work-id",
+            "SECRET_WORK_ID",
+            "--include-sources",
+            "--output",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["platform_source_count"] == 1
+    assert payload["source_attribution"] == {
+        "missing_upstream_evidence": [
+            "campaign_activity_logs",
+            "in_platform_source_breakdowns",
+            "playlist_placement_evidence",
+            "social_post_evidence",
+            "video_traffic_source_evidence",
+        ],
+        "status": "platform_sources_found_causal_origin_unknown",
+    }
+    assert payload["platform_sources"] == [
+        {
+            "dollars": "15.5",
+            "music_user": "SPOTIFY",
+            "music_user_genre": "Digital",
+            "number_of_plays": "150",
+            "performance_source_broadcast_medium": "Streaming",
+            "performance_type_usage": "Performance",
+            "period_count": 1,
+            "row_count": 2,
+        }
+    ]
+    assert "SECRET_WORK_ID" not in result.stdout
+    assert "SECRET_WORK_TITLE" not in result.stdout
+
+
 def test_summarize_ascap_work_attribution_gaps_report_no_match_status(
     tmp_path: Path,
 ) -> None:

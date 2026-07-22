@@ -7,6 +7,7 @@ from songtrace.domain.conclusion import Conclusion
 from songtrace.domain.evidence import Evidence
 from songtrace.domain.observation import Observation
 from songtrace.providers import (
+    AscapPlatformSourcesSummary,
     AscapWorkSummary,
     SpotifyApiAccessStatus,
     SpotifyAuthorizationUrl,
@@ -120,6 +121,42 @@ def print_investigation_json_result(
         ],
     }
     print(json.dumps(payload, sort_keys=True))
+
+
+def print_ascap_platform_sources_text_result(
+    summary: AscapPlatformSourcesSummary, *, include_sources: bool
+) -> None:
+    console.print("[bold]SongTrace ASCAP Platform Sources[/bold]")
+    console.print()
+    console.print(f"Scanned files: {summary.scanned_file_count}")
+    console.print(f"Matched files: {summary.matched_file_count}")
+    console.print(f"Matched rows: {summary.matched_row_count}")
+    console.print(f"Platform sources: {summary.platform_source_count}")
+    console.print()
+    console.print("[bold]Source attribution[/bold]")
+    console.print(f"Status: {summary.source_attribution_status}")
+    console.print("Missing upstream evidence:")
+    for evidence_type in summary.missing_upstream_evidence:
+        console.print(f"- {evidence_type}")
+
+    if include_sources:
+        console.print()
+        console.print("[bold]Platform source breakdown[/bold]")
+        if summary.platform_sources:
+            for source in summary.platform_sources:
+                console.print(
+                    "- "
+                    f"{source.music_user}: "
+                    f"{source.number_of_plays:,} plays, "
+                    f"${source.dollars:.2f}, "
+                    f"rows={source.row_count}, "
+                    f"periods={source.period_count}, "
+                    f"genre={source.music_user_genre}, "
+                    f"medium={source.performance_source_broadcast_medium}, "
+                    f"usage={source.performance_type_usage}"
+                )
+        else:
+            console.print("- none: 0")
 
 
 def print_ascap_work_summary_text_result(

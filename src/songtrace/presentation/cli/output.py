@@ -13,6 +13,7 @@ from songtrace.providers import (
     SpotifyEnvironmentStatus,
     SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
+    SpotifyPlaylistItemsDiagnostic,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
     SpotifyUserTokenExchangeStatus,
@@ -196,6 +197,45 @@ def print_spotify_user_token_exchange_json_status(
     }
     if include_access_token:
         payload["access_token"] = status.access_token
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_playlist_items_diagnostic_text_result(
+    result: SpotifyPlaylistItemsDiagnostic,
+) -> None:
+    console.print("[bold]SongTrace Spotify Playlist Items Diagnostic[/bold]")
+    console.print()
+    console.print(f"Spotify playlist ID: {result.spotify_playlist_id}")
+    if result.playlist_name is not None:
+        console.print(f"Playlist name: {result.playlist_name}")
+    console.print(f"Access mode: {result.access_mode}")
+    console.print(f"Metadata readable: {'yes' if result.metadata_readable else 'no'}")
+    if result.metadata_failure_reason is not None:
+        console.print(f"Metadata failure: {result.metadata_failure_reason}")
+    console.print(f"Track pages readable: {'yes' if result.track_pages_readable else 'no'}")
+    if result.track_pages_failure_reason is not None:
+        console.print(f"Track pages failure: {result.track_pages_failure_reason}")
+    console.print(
+        f"Minimal track items readable: {'yes' if result.minimal_track_items_readable else 'no'}"
+    )
+    if result.minimal_track_items_failure_reason is not None:
+        console.print(f"Minimal track items failure: {result.minimal_track_items_failure_reason}")
+
+
+def print_spotify_playlist_items_diagnostic_json_result(
+    result: SpotifyPlaylistItemsDiagnostic,
+) -> None:
+    payload = {
+        "access_mode": result.access_mode,
+        "metadata_failure_reason": result.metadata_failure_reason,
+        "metadata_readable": result.metadata_readable,
+        "minimal_track_items_failure_reason": result.minimal_track_items_failure_reason,
+        "minimal_track_items_readable": result.minimal_track_items_readable,
+        "playlist_name": result.playlist_name,
+        "spotify_playlist_id": result.spotify_playlist_id,
+        "track_pages_failure_reason": result.track_pages_failure_reason,
+        "track_pages_readable": result.track_pages_readable,
+    }
     print(json.dumps(payload, sort_keys=True))
 
 

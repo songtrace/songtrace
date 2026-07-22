@@ -45,6 +45,10 @@ from songtrace.providers.spotify_playlist_discovery import (
     discover_spotify_playlist_track_memberships,
     discover_spotify_playlist_track_memberships_for_queries,
 )
+from songtrace.providers.spotify_playlist_items_diagnostic import (
+    SpotifyPlaylistItemsDiagnostic,
+    diagnose_spotify_playlist_items,
+)
 from songtrace.providers.spotify_playlist_membership import (
     SpotifyPlaylistTrackMembership,
     lookup_spotify_playlist_track_membership,
@@ -82,6 +86,7 @@ __all__ = [
     "SpotifyEnvironmentStatus",
     "SpotifyPlaylistAccessStatus",
     "SpotifyPlaylistDiscoveryResult",
+    "SpotifyPlaylistItemsDiagnostic",
     "SpotifyPlaylistSearchCandidate",
     "SpotifyPlaylistSkippedCandidate",
     "SpotifyPlaylistTrackMembership",
@@ -89,6 +94,7 @@ __all__ = [
     "SpotifyUserTokenExchangeStatus",
     "build_spotify_authorization_url",
     "check_spotify_playlist_access",
+    "diagnose_spotify_playlist_items",
     "discover_spotify_playlist_track_memberships",
     "discover_spotify_playlist_track_memberships_for_queries",
     "exchange_spotify_authorization_code",

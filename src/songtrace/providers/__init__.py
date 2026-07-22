@@ -26,6 +26,14 @@ from songtrace.providers.spotify_environment import (
     SpotifyEnvironmentStatus,
     validate_spotify_environment,
 )
+from songtrace.providers.spotify_oauth import (
+    SPOTIFY_LOCAL_REDIRECT_URI,
+    SPOTIFY_PLAYLIST_READ_SCOPES,
+    SpotifyAuthorizationUrl,
+    SpotifyUserTokenExchangeStatus,
+    build_spotify_authorization_url,
+    exchange_spotify_authorization_code,
+)
 from songtrace.providers.spotify_playlist_access import (
     SpotifyPlaylistAccessStatus,
     check_spotify_playlist_access,
@@ -57,6 +65,8 @@ from songtrace.providers.spotify_track_metadata_export import (
 __all__ = [
     "SPOTIFY_CLIENT_ID_ENV",
     "SPOTIFY_CLIENT_SECRET_ENV",
+    "SPOTIFY_LOCAL_REDIRECT_URI",
+    "SPOTIFY_PLAYLIST_READ_SCOPES",
     "SPOTIFY_USER_ACCESS_TOKEN_ENV",
     "AscapCsvColumnProfile",
     "AscapCsvFileProfile",
@@ -68,6 +78,7 @@ __all__ = [
     "AscapInternationalIncomingCsvRawEvidenceSource",
     "AscapWorkSummary",
     "SpotifyApiAccessStatus",
+    "SpotifyAuthorizationUrl",
     "SpotifyEnvironmentStatus",
     "SpotifyPlaylistAccessStatus",
     "SpotifyPlaylistDiscoveryResult",
@@ -75,9 +86,12 @@ __all__ = [
     "SpotifyPlaylistSkippedCandidate",
     "SpotifyPlaylistTrackMembership",
     "SpotifyTrackMetadata",
+    "SpotifyUserTokenExchangeStatus",
+    "build_spotify_authorization_url",
     "check_spotify_playlist_access",
     "discover_spotify_playlist_track_memberships",
     "discover_spotify_playlist_track_memberships_for_queries",
+    "exchange_spotify_authorization_code",
     "lookup_spotify_playlist_track_membership",
     "lookup_spotify_track_metadata",
     "profile_ascap_csv_layout",

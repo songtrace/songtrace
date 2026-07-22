@@ -9,11 +9,13 @@ from songtrace.domain.observation import Observation
 from songtrace.providers import (
     AscapWorkSummary,
     SpotifyApiAccessStatus,
+    SpotifyAuthorizationUrl,
     SpotifyEnvironmentStatus,
     SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
+    SpotifyUserTokenExchangeStatus,
 )
 
 console = Console()
@@ -133,6 +135,67 @@ def print_spotify_api_access_json_status(status: SpotifyApiAccessStatus) -> None
         "missing_variables": list(status.environment.missing_variables),
         "token_request_attempted": status.token_request_attempted,
     }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_authorization_url_text_result(result: SpotifyAuthorizationUrl) -> None:
+    console.print("[bold]SongTrace Spotify User Authorization[/bold]")
+    console.print()
+    console.print(f"Redirect URI: {result.redirect_uri}")
+    console.print(f"Scopes: {', '.join(result.scopes)}")
+    console.print("Authorization URL:")
+    console.print(result.url)
+
+
+def print_spotify_authorization_url_json_result(result: SpotifyAuthorizationUrl) -> None:
+    payload = {
+        "authorization_url": result.url,
+        "redirect_uri": result.redirect_uri,
+        "scopes": list(result.scopes),
+        "state": result.state,
+    }
+    print(json.dumps(payload, sort_keys=True))
+
+
+def print_spotify_user_token_exchange_text_status(
+    status: SpotifyUserTokenExchangeStatus,
+    *,
+    print_export_command: bool,
+) -> None:
+    console.print("[bold]SongTrace Spotify User Token Exchange[/bold]")
+    console.print()
+    console.print(f"Token request attempted: {'yes' if status.token_request_attempted else 'no'}")
+    console.print(f"Access token received: {'yes' if status.access_token_received else 'no'}")
+    if status.token_type is not None:
+        console.print(f"Token type: {status.token_type}")
+    if status.expires_in_seconds is not None:
+        console.print(f"Expires in seconds: {status.expires_in_seconds}")
+    if status.scopes:
+        console.print(f"Scopes: {', '.join(status.scopes)}")
+    console.print(f"Refresh token received: {'yes' if status.refresh_token_received else 'no'}")
+    if status.failure_reason is not None:
+        console.print(f"Failure reason: {status.failure_reason}")
+    if print_export_command and status.access_token is not None:
+        console.print("Export command:")
+        console.print(f'export SONGTRACE_SPOTIFY_USER_ACCESS_TOKEN="{status.access_token}"')
+
+
+def print_spotify_user_token_exchange_json_status(
+    status: SpotifyUserTokenExchangeStatus,
+    *,
+    include_access_token: bool,
+) -> None:
+    payload = {
+        "access_token_received": status.access_token_received,
+        "expires_in_seconds": status.expires_in_seconds,
+        "failure_reason": status.failure_reason,
+        "refresh_token_received": status.refresh_token_received,
+        "scopes": list(status.scopes),
+        "token_request_attempted": status.token_request_attempted,
+        "token_type": status.token_type,
+    }
+    if include_access_token:
+        payload["access_token"] = status.access_token
     print(json.dumps(payload, sort_keys=True))
 
 

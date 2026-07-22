@@ -6,14 +6,171 @@ import pytest
 from songtrace.application import EvidenceImporter, JsonRawEvidenceSource
 from songtrace.presentation.cli import main as cli_main
 from songtrace.providers import (
+    SpotifyAuthorizationUrl,
     SpotifyPlaylistAccessStatus,
     SpotifyPlaylistDiscoveryResult,
     SpotifyPlaylistSearchCandidate,
     SpotifyPlaylistSkippedCandidate,
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
+    SpotifyUserTokenExchangeStatus,
 )
 from tests.presentation.cli.fixtures import *
+
+
+def test_spotify_user_auth_url_text_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def build(*, redirect_uri: str) -> SpotifyAuthorizationUrl:
+        assert redirect_uri == "http://127.0.0.1:8765/callback"
+        return SpotifyAuthorizationUrl(
+            url=("https://accounts.spotify.com/authorize?client_id=client-id&response_type=code"),
+            redirect_uri=redirect_uri,
+            scopes=("playlist-read-private", "playlist-read-collaborative"),
+            state="songtrace-local-oauth",
+        )
+
+    monkeypatch.setattr(cli_main, "build_spotify_authorization_url", build)
+
+    result = runner.invoke(app, ["spotify-user-auth-url"])
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify User Authorization" in result.stdout
+    assert "Redirect URI: http://127.0.0.1:8765/callback" in result.stdout
+    assert "playlist-read-private" in result.stdout
+    assert "Authorization URL:" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
+
+
+def test_spotify_user_auth_url_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    def build(*, redirect_uri: str) -> SpotifyAuthorizationUrl:
+        return SpotifyAuthorizationUrl(
+            url="https://accounts.spotify.com/authorize?client_id=client-id",
+            redirect_uri=redirect_uri,
+            scopes=("playlist-read-private",),
+            state="songtrace-local-oauth",
+        )
+
+    monkeypatch.setattr(cli_main, "build_spotify_authorization_url", build)
+
+    result = runner.invoke(app, ["spotify-user-auth-url", "--output", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "authorization_url": "https://accounts.spotify.com/authorize?client_id=client-id",
+        "redirect_uri": "http://127.0.0.1:8765/callback",
+        "scopes": ["playlist-read-private"],
+        "state": "songtrace-local-oauth",
+    }
+
+
+def test_spotify_user_token_from_code_text_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def exchange(code: str, *, redirect_uri: str) -> SpotifyUserTokenExchangeStatus:
+        assert code == "authorization-code"
+        assert redirect_uri == "http://127.0.0.1:8765/callback"
+        return SpotifyUserTokenExchangeStatus(
+            token_request_attempted=True,
+            access_token_received=True,
+            token_type="Bearer",
+            expires_in_seconds=3600,
+            scopes=("playlist-read-private", "playlist-read-collaborative"),
+            refresh_token_received=True,
+            _access_token="SECRET_USER_TOKEN",
+        )
+
+    monkeypatch.setattr(cli_main, "exchange_spotify_authorization_code", exchange)
+
+    result = runner.invoke(app, ["spotify-user-token-from-code", "authorization-code"])
+
+    assert result.exit_code == 0
+    assert "SongTrace Spotify User Token Exchange" in result.stdout
+    assert "Token request attempted: yes" in result.stdout
+    assert "Access token received: yes" in result.stdout
+    assert "Expires in seconds: 3600" in result.stdout
+    assert "Refresh token received: yes" in result.stdout
+    assert "SECRET_USER_TOKEN" not in result.stdout
+    assert "SONGTRACE_SPOTIFY_USER_ACCESS_TOKEN" not in result.stdout
+
+
+def test_spotify_user_token_from_code_can_print_explicit_export_command(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def exchange(_code: str, *, redirect_uri: str) -> SpotifyUserTokenExchangeStatus:
+        assert redirect_uri == "http://127.0.0.1:8765/callback"
+        return SpotifyUserTokenExchangeStatus(
+            token_request_attempted=True,
+            access_token_received=True,
+            token_type="Bearer",
+            _access_token="SECRET_USER_TOKEN",
+        )
+
+    monkeypatch.setattr(cli_main, "exchange_spotify_authorization_code", exchange)
+
+    result = runner.invoke(
+        app,
+        ["spotify-user-token-from-code", "authorization-code", "--print-export-command"],
+    )
+
+    assert result.exit_code == 0
+    assert 'export SONGTRACE_SPOTIFY_USER_ACCESS_TOKEN="SECRET_USER_TOKEN"' in result.stdout
+
+
+def test_spotify_user_token_from_code_json_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def exchange(_code: str, *, redirect_uri: str) -> SpotifyUserTokenExchangeStatus:
+        assert redirect_uri == "http://127.0.0.1:8765/callback"
+        return SpotifyUserTokenExchangeStatus(
+            token_request_attempted=True,
+            access_token_received=True,
+            token_type="Bearer",
+            expires_in_seconds=3600,
+            scopes=("playlist-read-private",),
+            _access_token="SECRET_USER_TOKEN",
+        )
+
+    monkeypatch.setattr(cli_main, "exchange_spotify_authorization_code", exchange)
+
+    result = runner.invoke(
+        app,
+        ["spotify-user-token-from-code", "authorization-code", "--output", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "access_token_received": True,
+        "expires_in_seconds": 3600,
+        "failure_reason": None,
+        "refresh_token_received": False,
+        "scopes": ["playlist-read-private"],
+        "token_request_attempted": True,
+        "token_type": "Bearer",
+    }
+    assert "SECRET_USER_TOKEN" not in result.stdout
+
+
+def test_spotify_user_token_from_code_failure_output_is_private_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def exchange(_code: str, *, redirect_uri: str) -> SpotifyUserTokenExchangeStatus:
+        assert redirect_uri == "http://127.0.0.1:8765/callback"
+        return SpotifyUserTokenExchangeStatus(
+            token_request_attempted=True,
+            access_token_received=False,
+            failure_reason="spotify_user_token_http_error_400",
+        )
+
+    monkeypatch.setattr(cli_main, "exchange_spotify_authorization_code", exchange)
+
+    result = runner.invoke(app, ["spotify-user-token-from-code", "authorization-code"])
+
+    assert result.exit_code == 0
+    assert "spotify_user_token_http_error_400" in result.stdout
+    assert "SECRET" not in result.stdout
+    assert "access_token" not in result.stdout
 
 
 def test_spotify_playlist_access_check_text_output(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -28,7 +28,7 @@ The reasoning engine should continue to operate only on normalized `Evidence`, `
 
 SongTrace exposes `spotify_connector_descriptor()` as provider-facing planning metadata for this future boundary. The descriptor records expected ingestion methods, evidence kinds, freshness characteristics, and reliability considerations. It does not load records, perform OAuth, call Spotify APIs, store credentials, or create domain evidence.
 
-For a broader review of Spotify Web API, Spotify for Artists, professional/partner reporting, and commercial provider access paths, see [Spotify Access Paths Research](../research/SPOTIFY_ACCESS_PATHS.md).
+For a broader review of Spotify Web API, Spotify for Artists, professional/partner reporting, and commercial provider access paths, see [Spotify Access Paths Research](../research/SPOTIFY_ACCESS_PATHS.md). For private-safe local export inspection, see [Spotify for Artists Export Profiling Guide](SPOTIFY_FOR_ARTISTS_EXPORT_PROFILING.md).
 
 Before any live Spotify work, developers can check local credential environment variable presence with:
 
@@ -377,6 +377,7 @@ A future first Spotify connector should be small. It should likely focus on one 
 
 1. **Spotify for Artists export/import adapter**
    - starts from user-exported account data
+   - profiles private exports using [Spotify for Artists Export Profiling Guide](SPOTIFY_FOR_ARTISTS_EXPORT_PROFILING.md)
    - normalizes streams/saves/listeners into provider-neutral evidence
    - avoids deeper OAuth scope until file-based semantics are understood
 

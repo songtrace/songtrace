@@ -6,6 +6,58 @@ The CLI is intentionally provider-neutral. It loads raw evidence files into `Raw
 
 ## Commands
 
+### `spotify-user-auth-url`
+
+Generate a Spotify authorization URL for local diagnostic user-token testing.
+
+```sh
+uv run songtrace spotify-user-auth-url
+```
+
+Before using this command, configure your Spotify Developer app with this redirect URI:
+
+```text
+http://127.0.0.1:8765/callback
+```
+
+The command uses `SONGTRACE_SPOTIFY_CLIENT_ID`, requests the playlist read scopes needed for playlist probes, and does not contact Spotify. Open the printed URL in a browser, approve access, then copy the `code` value from the redirected URL.
+
+If your Spotify app uses a different redirect URI, pass it explicitly:
+
+```sh
+uv run songtrace spotify-user-auth-url --redirect-uri "http://127.0.0.1:8765/callback"
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace spotify-user-auth-url --output json
+```
+
+### `spotify-user-token-from-code`
+
+Exchange a Spotify authorization code for a short-lived local user access token.
+
+```sh
+uv run songtrace spotify-user-token-from-code "authorization-code-from-redirect-url"
+```
+
+By default, this command prints private-safe status only. It reports whether an access token was received, token type, expiry, scopes, and whether a refresh token was included. It does not print token values, persist tokens, refresh tokens, create evidence, or change the investigation pipeline.
+
+To intentionally print a shell export command for the short-lived access token:
+
+```sh
+uv run songtrace spotify-user-token-from-code "authorization-code-from-redirect-url" --print-export-command
+```
+
+Then run the printed `export SONGTRACE_SPOTIFY_USER_ACCESS_TOKEN=...` command in your shell and use `spotify-playlist-access-check --access-mode user-token`.
+
+For machine-readable private-safe output:
+
+```sh
+uv run songtrace spotify-user-token-from-code "authorization-code-from-redirect-url" --output json
+```
+
 ### `spotify-playlist-access-check`
 
 Check whether the current Spotify credentials can read playlist metadata and playlist track items for one playlist ID.

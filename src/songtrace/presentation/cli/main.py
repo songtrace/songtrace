@@ -29,6 +29,8 @@ from songtrace.presentation.cli.output import (
     print_investigation_text_result,
     print_spotify_api_access_json_status,
     print_spotify_api_access_text_status,
+    print_spotify_authorization_url_json_result,
+    print_spotify_authorization_url_text_result,
     print_spotify_environment_json_status,
     print_spotify_environment_text_status,
     print_spotify_playlist_access_json_status,
@@ -39,12 +41,16 @@ from songtrace.presentation.cli.output import (
     print_spotify_playlist_membership_text_result,
     print_spotify_track_metadata_json_result,
     print_spotify_track_metadata_text_result,
+    print_spotify_user_token_exchange_json_status,
+    print_spotify_user_token_exchange_text_status,
     print_validation_json_result,
     print_validation_text_result,
 )
 from songtrace.providers import (
+    build_spotify_authorization_url,
     check_spotify_playlist_access,
     discover_spotify_playlist_track_memberships_for_queries,
+    exchange_spotify_authorization_code,
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
@@ -86,6 +92,89 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("spotify-user-auth-url")
+def spotify_user_auth_url_command(
+    redirect_uri: Annotated[
+        str,
+        typer.Option(
+            "--redirect-uri",
+            help="Spotify redirect URI registered for the developer app.",
+        ),
+    ] = "http://127.0.0.1:8765/callback",
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Generate a local Spotify user authorization URL."""
+
+    output_format = parse_output_format(output)
+    try:
+        result = build_spotify_authorization_url(redirect_uri=redirect_uri)
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_authorization_url_text_result(result)
+        case "json":
+            print_spotify_authorization_url_json_result(result)
+
+
+@app.command("spotify-user-token-from-code")
+def spotify_user_token_from_code_command(
+    code: Annotated[
+        str,
+        typer.Argument(help="Spotify authorization code copied from the redirect URL."),
+    ],
+    redirect_uri: Annotated[
+        str,
+        typer.Option(
+            "--redirect-uri",
+            help="Spotify redirect URI used for the authorization URL.",
+        ),
+    ] = "http://127.0.0.1:8765/callback",
+    print_export_command: Annotated[
+        bool,
+        typer.Option(
+            "--print-export-command",
+            help="Print a shell export command containing the short-lived access token.",
+        ),
+    ] = False,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Exchange a Spotify authorization code for a local user access token."""
+
+    output_format = parse_output_format(output)
+    try:
+        status = exchange_spotify_authorization_code(code, redirect_uri=redirect_uri)
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_spotify_user_token_exchange_text_status(
+                status,
+                print_export_command=print_export_command,
+            )
+        case "json":
+            print_spotify_user_token_exchange_json_status(
+                status,
+                include_access_token=print_export_command,
+            )
 
 
 @app.command("spotify-playlist-access-check")

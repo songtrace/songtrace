@@ -2,21 +2,21 @@
 
 ## Product Direction
 
-SongTrace is evolving from a deterministic investigation engine into an evidence-driven intelligence platform for the music industry.
+SongTrace is evolving from a deterministic investigation engine into an evidence-driven intelligence platform for the music industry, with a reasoning core that should remain reusable across future evidence-to-action domains.
 
 The roadmap is organized around increasing product maturity, not around individual providers or dashboards. Each stage builds on the same core reasoning model:
 
 ```text
-Evidence -> Observation -> Conclusion -> Recommendation
+Evidence -> Observation -> Event/Conclusion -> Opportunity -> Recommendation
 ```
 
-The near-term priority is to make this pipeline reliable, explainable, and easy to extend. Later stages can add richer diagnosis, opportunity detection, and AI-assisted strategic support.
+The near-term priority is to make this pipeline reliable, explainable, and easy to extend through implementation-led vertical slices. Later stages can add richer diagnosis, opportunity detection, and AI-assisted strategic support without weakening the generic reasoning core.
 
 ## Product Maturity Stages
 
-### 1. Investigation
+### 1. Investigation and Event Detection
 
-The investigation stage answers: "What happened, and what conclusion is supported by the evidence we have?"
+The investigation stage answers: "What happened, what event is supported by the evidence we have, and what remains unknown?"
 
 Current and near-term capabilities include:
 
@@ -24,7 +24,7 @@ Current and near-term capabilities include:
 - validating evidence into domain entities
 - extracting structured observations
 - evaluating deterministic investigation rules
-- producing traceable conclusions
+- producing traceable conclusions and event reports
 - preserving exact evidence and observation provenance
 
 This stage should remain small, deterministic, and highly tested.
@@ -45,20 +45,20 @@ Future capabilities may include:
 
 Diagnosis should not claim causal certainty from correlation. It should explain what is supported, what is uncertain, and what evidence would improve confidence.
 
-### 3. Decision Support
+### 3. Opportunity Detection and Decision Support
 
-The decision-support stage answers: "What actions are reasonably supported?"
+The opportunity and decision-support stage answers: "Where are the gaps, and what actions are reasonably supported?"
 
 Future capabilities may include:
 
 - evidence-backed recommendations
-- opportunity ranking
+- territory, platform, audience, campaign, and catalog opportunity ranking
 - risk and uncertainty representation
 - estimated effort and investment ranges
 - recommendation dismissal and feedback tracking
 - repeatable strategic reports
 
-Recommendations should remain traceable to evidence, observations, conclusions, and confidence.
+Recommendations should remain traceable to evidence, observations, events, conclusions, opportunities, and confidence.
 
 ### 4. Strategic Advisor
 
@@ -94,6 +94,7 @@ SongTrace's long-term work is organized into major epics:
 
 5. **Market Opportunity Engine**
    - Identifies evidence-backed opportunities across artists, tracks, catalogs, territories, audiences, platforms, and campaigns.
+   - Near-term focus: compare market/genre/territory trend strength against artist or track performance to surface underserved expansion opportunities.
 
 6. **Explainable AI Advisor**
    - Uses AI to synthesize structured SongTrace evidence into explanations, hypotheses, questions, and strategic options.
@@ -105,15 +106,17 @@ SongTrace's long-term work is organized into major epics:
 
 Near-term development should prioritize:
 
+- implementation-led PRs over documentation-only PRs when possible
+- clear product questions before adding infrastructure
 - simple domain models
 - deterministic behavior
 - explicit invariants
 - traceability
-- provider neutrality
+- provider and vertical neutrality in the reasoning core
 - strong tests
 - small vertical slices
 
-The project should avoid speculative architecture. New abstractions should appear only when the current codebase has a concrete need for them.
+The project should avoid speculative architecture. New abstractions should appear only when the current music proof cases create a concrete need for them, and they should be named generically when they plausibly belong in the reusable reasoning core.
 
 Near-term implementation should continue strengthening the current pipeline:
 
@@ -125,13 +128,14 @@ Connected ecosystem work should wait until the current import boundary and evide
 
 ## Long-Term Product Direction
 
-Long term, SongTrace should become a trusted reasoning layer above fragmented music data sources.
+Long term, SongTrace should become a trusted reasoning layer above fragmented music data sources and a proving ground for a broader evidence-to-action reasoning platform.
 
 Users should be able to bring their own data from platforms, providers, distributors, rights organizations, internal systems, file exports, and future sources. SongTrace should normalize that evidence into a common domain model and reason over it without coupling the intelligence layer to the source mechanism.
 
 The product should help users:
 
 - understand performance changes
+- detect meaningful music events
 - diagnose likely contributors
 - compare alternative explanations
 - identify missing evidence

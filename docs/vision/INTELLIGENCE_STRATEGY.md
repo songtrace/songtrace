@@ -4,15 +4,17 @@
 
 SongTrace's intelligence strategy defines how the product turns evidence into understanding.
 
-Analytics produce measurements. SongTrace produces explainable conclusions and, eventually, evidence-backed recommendations. The intelligence layer should remain traceable, deterministic where possible, and honest about uncertainty.
+Analytics produce measurements. SongTrace produces explainable events, conclusions, opportunities, and eventually evidence-backed recommendations. The intelligence layer should remain traceable, deterministic where possible, and honest about uncertainty.
 
 The core model is:
 
 ```text
-Evidence -> Observation -> Conclusion -> Recommendation
+Evidence -> Observation -> Event/Conclusion -> Opportunity -> Recommendation
 ```
 
-The intelligence layer should remain independent of ingestion mechanisms. Whether evidence enters SongTrace through REST APIs, OAuth APIs, CSV imports, Excel reports, PDF statements, manual uploads, webhooks, or future Evidence Connectors, the reasoning engine should operate only on normalized evidence, observations, conclusions, confidence, and future recommendations.
+The intelligence layer should remain independent of ingestion mechanisms and vertical-specific provider semantics. Whether evidence enters SongTrace through REST APIs, OAuth APIs, CSV imports, Excel reports, PDF statements, manual uploads, webhooks, or future Evidence Connectors, the reasoning engine should operate only on normalized evidence, observations, events, conclusions, confidence, opportunities, and future recommendations.
+
+Music-specific adapters should translate ASCAP, Spotify, TikTok, distributor, playlist, touring, marketing, and royalty data into generic reasoning primitives. The same core should eventually be capable of supporting analogous evidence-to-action products in other domains.
 
 ## Observation Extraction
 
@@ -46,9 +48,24 @@ Rules should remain:
 
 SongTrace should not rush into a generic rules engine. Rule complexity should grow only when real investigation needs require it.
 
+## Events
+
+An event is a meaningful state or change detected from observations. Events help users understand what happened or what is happening before the system claims a full causal explanation.
+
+Music event examples include:
+
+- commercial impact confirmed
+- platform activity corroborated
+- territory momentum detected
+- likely upstream trigger identified
+- causal source confirmed
+- market opportunity detected
+
+Events should include supporting observations, status, confidence or uncertainty, missing evidence, and recommended next evidence to collect.
+
 ## Conclusions
 
-A conclusion is an inference supported by observations.
+A conclusion is an inference supported by observations or events.
 
 A conclusion should include:
 
@@ -133,7 +150,7 @@ This prevents unsupported certainty and helps users decide what data to acquire 
 
 ## Recommendation Engine
 
-Recommendations are future outputs based on conclusions, confidence, risk, cost, and opportunity.
+Recommendations are future outputs based on events, conclusions, confidence, risk, cost, and opportunity.
 
 A recommendation should answer:
 
@@ -144,15 +161,15 @@ A recommendation should answer:
 - What could make the recommendation wrong?
 - What evidence would improve confidence?
 
-Recommendations should not be introduced until the evidence, observation, conclusion, and confidence layers are strong enough to support decision-making.
+Recommendations should not be introduced until the evidence, observation, event, conclusion, and confidence layers are strong enough to support decision-making.
 
 ## Opportunity Engine
 
-The Opportunity Engine is a future capability that identifies evidence-backed growth opportunities.
+The Opportunity Engine identifies evidence-backed growth opportunities by comparing market context against current performance. It is a core product direction, not merely a future add-on.
 
 Potential opportunity types include:
 
-- territory opportunities
+- territory and scene/genre gap opportunities
 - audience-segment opportunities
 - platform opportunities
 - catalog reactivation candidates
@@ -161,7 +178,9 @@ Potential opportunity types include:
 - collaboration opportunities
 - content-format opportunities
 
-Opportunities should be ranked by expected value, confidence, cost, risk, and evidence quality.
+Opportunities should be ranked by expected value, confidence, cost, risk, evidence quality, freshness, and actionability.
+
+A target use case is comparing daily or recurring market trends in major territories against an artist's territory performance. If a relevant scene or genre is growing in a territory where the artist has little traction, SongTrace should surface that gap and recommend evidence-backed next actions such as playlist research, local media outreach, targeted advertising tests, community research, comparable-artist analysis, or touring-market validation.
 
 ## Explainable AI
 
@@ -171,7 +190,9 @@ AI should operate over SongTrace's structured objects:
 
 - Evidence
 - Observations
+- Events
 - Conclusions
+- Opportunities
 - Confidence
 - future Recommendations
 
@@ -199,10 +220,12 @@ Feedback from human decisions can eventually improve rule quality, confidence ca
 SongTrace should become capable of explaining:
 
 - what changed
-- what evidence supports that change
+- what is happening now
+- what evidence supports that event or change
 - what likely contributed to it
 - what alternatives should be considered
 - what evidence is missing
+- which opportunities deserve attention
 - what actions are reasonably supported
 - how confident the system is and why
 

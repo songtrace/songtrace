@@ -6,7 +6,7 @@ SongTrace depends on trustworthy evidence. This document defines the long-term d
 
 SongTrace must not assume that every desirable metric is available through public APIs. Some evidence may be obtainable through public platforms, some through user imports, some through distributors, some through commercial providers, and some may be unavailable or only derivable.
 
-The goal is to build disciplined evidence foundations before expanding conclusions and recommendations.
+The goal is to build disciplined evidence foundations before expanding conclusions, opportunities, and recommendations. Music is the first vertical, but evidence categories should be normalized in ways that keep the reasoning engine reusable across future domains.
 
 ## Evidence Catalog
 
@@ -52,6 +52,7 @@ The existing `EvidenceKind` and `EvidenceSignal` models are early examples of pr
 | Audience activity | Listener, follower, fan, or subscriber growth | Optional | Did audience depth grow alongside consumption? | Audience growth helps distinguish durable momentum from short-term consumption spikes. |
 | Audience activity | Demographic or segment evidence | Future | Which audiences are responding? | Segmentation can support diagnosis and decision support but may carry availability and privacy constraints. |
 | Market activity | Territory-level consumption and engagement | Optional | Where is momentum emerging? | Territory evidence supports market opportunity detection and campaign allocation decisions. |
+| Market activity | Local genre, scene, or market trend strength | Optional | Is a relevant market growing where the artist has low traction? | Comparing market trend strength with artist or track performance can reveal expansion gaps and actionable opportunities. |
 | Market activity | Local market context and availability | Future | Is growth meaningful in the local context? | Territory evidence becomes stronger when compared with market size, release availability, and historical baselines. |
 | Campaign activity | Campaign timing and spend | Optional | Did paid or owned activity coincide with performance changes? | Campaign context helps avoid over-attributing growth to organic or playlist activity. |
 | Campaign activity | Campaign channel, targeting, and creative metadata | Future | Which campaign actions appear efficient or repeatable? | More detailed campaign evidence supports diagnosis and recommendation quality. |
@@ -61,6 +62,7 @@ The existing `EvidenceKind` and `EvidenceSignal` models are early examples of pr
 | Commercial activity | Revenue, royalty, and sales evidence | Future | Did attention convert into commercial value? | Commercial evidence is critical for opportunity ranking but may depend on distributor, label, or rights-holder access. |
 | Media and press | Press, radio, sync, and editorial coverage | Future | Did external exposure contribute to momentum? | Media context can explain performance changes outside platform-native signals. |
 | Comparable context | Comparable artists, tracks, campaigns, or markets | Exploratory | What benchmarks make this performance meaningful? | Comparable-case reasoning is useful but should wait until SongTrace has enough normalized evidence and safeguards. |
+| Decision context | Actionability, cost, risk, and operational constraints | Future | What action should a team consider next? | Recommendations need context about budget, effort, rights, access, touring feasibility, market partners, and risk. |
 
 ### Catalog principles
 
@@ -101,6 +103,7 @@ The data-source matrix maps provider-neutral evidence needs to likely source cat
 | Playlist type, size, position, and curator context | Playlist and editorial data, commercial data providers, limited public APIs | Partly obtainable | Medium | Variable | Commercial playlist databases may restrict reuse or export. | Playlist followers are imperfect proxies for reach; editorial, algorithmic, user, and paid contexts must be distinguished. |
 | Listener, follower, fan, or subscriber growth | User imports, platform analytics exports, public APIs, commercial data providers | Partly obtainable | Medium | Variable | Audience metrics may be account-bound or limited by privacy and platform terms. | Definitions vary: follower, listener, subscriber, fan, and engaged listener are not interchangeable. |
 | Territory-level consumption and engagement | User imports, distributor exports, commercial data providers | Partly obtainable | Medium | Medium | Granular geography may be restricted by platform, account access, privacy, or licensing. | Territory naming, minimum thresholds, and suppressed small-sample data can affect comparability. |
+| Local genre, scene, or market trend strength | Commercial data providers, public trend sources, charts, social platforms, playlist trackers, user research | Exploratory | Medium to high | Variable | Public, social, and commercial trend sources may have licensing, methodology, or reuse constraints. | Trend strength must be compared with artist performance carefully to avoid overfitting or mistaking broad genre interest for artist-specific demand. |
 | Campaign timing, spend, and channel evidence | User imports, advertising exports, marketing platforms, campaign management tools | Obtainable from customer-owned data | High when exported directly | Variable | Requires authorized access to campaign accounts and may include sensitive business information. | Campaign names, attribution windows, targeting definitions, and creative metadata are often inconsistent. |
 | Social engagement and follower growth | Social and short-form platforms, public APIs, user imports, commercial data providers | Partly obtainable | High for recent data | Often shallow or inconsistent | APIs and terms change frequently; some metrics may be restricted or unavailable. | Engagement metrics are platform-specific and susceptible to spikes, bot activity, and changing algorithms. |
 | Short-form content usage and trend evidence | Social and short-form platforms, commercial data providers, user imports | Uncertain or commercially gated | High for recent data | Often limited | Access, licensing, attribution, and rights constraints may be material. | Attribution from creator activity to music consumption can be noisy and incomplete. |

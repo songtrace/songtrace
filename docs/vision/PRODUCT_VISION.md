@@ -2,9 +2,11 @@
 
 ## Mission
 
-SongTrace is an evidence-driven intelligence platform for understanding why music performance changes and what actions are reasonably supported by the available evidence.
+SongTrace is an evidence-driven intelligence platform for understanding why music performance changes, where growth opportunities may exist, and what actions are reasonably supported by the available evidence.
 
-The mission is to help artists, managers, labels, publishers, and other music professionals move from raw metrics to explainable understanding. Analytics tools report what happened. SongTrace is designed to explain what the evidence suggests, what remains uncertain, and what decisions could be supported next.
+The mission is to help artists, managers, labels, publishers, marketers, and other music professionals move from raw metrics to explainable understanding and better decisions. Analytics tools report what happened. SongTrace is designed to explain what the evidence suggests, what remains uncertain, which opportunities deserve attention, and what decisions could be supported next.
+
+Music is the first vertical because it has immediate real-world value and strong personal relevance for the founding proof cases. The underlying reasoning model should remain generic enough to later support similar evidence-to-action products in other domains.
 
 ## Product Philosophy
 
@@ -12,10 +14,10 @@ SongTrace is not a reporting dashboard. It is a reasoning system built around tr
 
 Most music analytics products aggregate measurements: streams, saves, playlist placements, social activity, audience geography, campaign performance, chart movement, and other signals. Those measurements are valuable, but they do not automatically explain why performance changed or what a team should do next.
 
-SongTrace treats measurements as evidence. Evidence is interpreted into observations. Observations support conclusions. Conclusions can eventually support recommendations. Each step must remain explainable and traceable.
+SongTrace treats measurements as evidence. Evidence is interpreted into observations. Observations support events, conclusions, opportunities, and eventually recommendations. Each step must remain explainable and traceable.
 
 ```text
-Evidence -> Observation -> Conclusion -> Recommendation
+Evidence -> Observation -> Event/Conclusion -> Opportunity -> Recommendation
 ```
 
 This model is intentionally conservative. SongTrace should prefer clear, deterministic reasoning before AI-assisted interpretation. AI may help synthesize and explain, but it must reason over structured SongTrace evidence, observations, conclusions, and confidence. It must not become the source of factual truth.
@@ -37,11 +39,11 @@ Every observation must reference supporting evidence. Every conclusion must refe
 
 A user should always be able to ask: "Why does SongTrace say this?" and receive a clear answer grounded in specific evidence.
 
-### Provider neutrality
+### Provider and vertical neutrality
 
-SongTrace must not be designed around one data vendor, streaming platform, distributor, or commercial provider. Providers supply evidence; they should not define the reasoning model.
+SongTrace must not be designed around one data vendor, streaming platform, distributor, commercial provider, or even one long-term vertical. Providers and vertical adapters supply evidence; they should not define the reasoning model.
 
-Provider-specific schemas should be translated into provider-neutral records before they reach the reasoning engine.
+Provider-specific and music-specific schemas should be translated into provider-neutral records before they reach the reasoning engine. The core reasoning engine should operate on general concepts such as evidence, observations, events, trends, confidence, missing evidence, opportunities, recommendations, risk, and provenance.
 
 ### Connected Music Ecosystem
 
@@ -75,13 +77,13 @@ It should not reason directly over raw provider payloads unless those payloads h
 
 SongTrace is:
 
-- an evidence-driven reasoning platform for music intelligence
-- a system for explaining performance changes
+- an evidence-driven reasoning platform with music as its first vertical
+- a system for explaining performance changes and detecting meaningful music events
 - a provider-neutral evidence pipeline
 - a traceable conclusion engine
 - a connected intelligence layer above existing music tools and data providers
 - a bring-your-own-data platform for evidence users already have permission to access
-- a future decision-support and opportunity platform
+- a future decision-support and market opportunity platform
 - a foundation for explainable AI-assisted music strategy
 
 ## What SongTrace Is Not
@@ -106,9 +108,17 @@ Evidence is a validated fact collected from a source. It may come from a public 
 
 An observation is a factual pattern extracted from evidence. For example, playlist placement evidence plus stream-growth evidence can support an observation that streams increased after playlist placement.
 
+### Event
+
+An event is a meaningful state or change detected from evidence-backed observations. In music, events may include commercial activity confirmed, platform activity corroborated, likely upstream trigger identified, causal source confirmed, or market opportunity detected. The concept should remain generic enough to support analogous events in future domains.
+
 ### Conclusion
 
 A conclusion is an inference supported by one or more observations. Conclusions include confidence and rationale. They should never appear without traceable support.
+
+### Opportunity
+
+An opportunity is a possible area for growth or action suggested by evidence. In music, this may include a territory, platform, audience, campaign, playlist ecosystem, media market, or touring market where market signals and current performance indicate upside.
 
 ### Recommendation
 
@@ -118,7 +128,7 @@ Recommendations should emerge only after the evidence, observation, conclusion, 
 
 ## Long-Term Vision
 
-Long term, SongTrace should become an evidence-based reasoning and decision-support platform for the music industry.
+Long term, SongTrace should become an evidence-based reasoning and decision-support platform that proves itself first in the music industry while preserving a reusable, vertical-agnostic reasoning core.
 
 It should help users answer questions such as:
 
@@ -130,6 +140,6 @@ It should help users answer questions such as:
 - What opportunities deserve attention?
 - What actions are reasonably supported?
 
-The product should complement data providers. It should help users understand what the data means, what deserves attention, and which actions are supported by trustworthy evidence.
+The product should complement data providers. It should help users understand what the data means, what deserves attention, which opportunities are underserved, and which actions are supported by trustworthy evidence.
 
 In the long term, SongTrace should support a connected music ecosystem where evidence can arrive through APIs, uploads, reports, royalty statements, internal systems, and future integrations. The reasoning engine should remain unaware of how evidence entered the system. Its responsibility is to reason over normalized evidence, observations, conclusions, confidence, and future recommendations.

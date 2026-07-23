@@ -1,13 +1,13 @@
 # SongTrace
 
-SongTrace is an evidence-driven music intelligence platform.
+SongTrace is an evidence-driven music intelligence platform and the first vertical for a broader provider-neutral reasoning engine.
 
-It is not a reporting dashboard. Analytics produce measurements; SongTrace turns structured evidence into explainable, traceable understanding.
+It is not a reporting dashboard. Analytics produce measurements; SongTrace turns structured evidence into explainable, traceable understanding, event intelligence, and eventually actionable recommendations.
 
-The current implementation is intentionally small and deterministic. It focuses on the core reasoning path:
+The current implementation is intentionally small and deterministic. It focuses on a reasoning path that should remain generic enough to serve future verticals beyond music:
 
 ```text
-Evidence -> Observation -> Conclusion
+Evidence -> Observation -> Event/Conclusion -> Opportunity -> Recommendation
 ```
 
 For local evidence imports, SongTrace uses a provider-neutral boundary:
@@ -16,7 +16,7 @@ For local evidence imports, SongTrace uses a provider-neutral boundary:
 RawEvidenceSource -> RawEvidenceRecord -> EvidenceImporter -> Evidence
 ```
 
-This keeps source-specific file parsing outside the domain reasoning model.
+This keeps source-specific file parsing outside the domain reasoning model. Music-specific providers such as ASCAP or Spotify should adapt their data into normalized evidence; the reasoning engine should not depend on music-vendor schemas.
 
 ## Current capabilities
 
@@ -27,7 +27,9 @@ SongTrace can currently:
 - extract deterministic playlist engagement observations
 - run deterministic investigation rules
 - produce traceable conclusions with confidence
-- expose local validation and investigation commands through the CLI
+- summarize ASCAP royalty and platform-source evidence
+- produce ASCAP-backed music event reports with missing evidence and next actions
+- expose local validation, investigation, and evidence-summary commands through the CLI
 
 ## Quickstart
 
@@ -123,6 +125,17 @@ Additional project documentation lives in `docs/`, including:
 - [Data Strategy](docs/vision/DATA_STRATEGY.md)
 - [Intelligence Strategy](docs/vision/INTELLIGENCE_STRATEGY.md)
 - [Roadmap](docs/vision/ROADMAP.md)
+
+## Current objective
+
+Near-term work should stay focused on implementation-led vertical slices that help users answer:
+
+- What happened?
+- What evidence supports it?
+- What remains unknown?
+- What opportunity or next action is reasonably supported?
+
+Music is the proving ground because it provides immediate real-world evidence and user value. The core reasoning primitives should stay generic enough to later support analogous evidence-to-action domains such as market analysis, telecom trend detection, or operational incident intelligence.
 
 ## Current non-goals
 

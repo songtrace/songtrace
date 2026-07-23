@@ -32,6 +32,25 @@ _PLAYLIST_PLACEMENT_COLUMNS = (
     "track_title",
     "track_isrc",
 )
+_MARKET_TREND_COLUMNS = (
+    "observed_at",
+    "territory",
+    "genre",
+    "metric_name",
+    "metric_value",
+    "source_name",
+    "reference",
+)
+_PERFORMANCE_TERRITORY_COLUMNS = (
+    "observed_at",
+    "territory",
+    "artist_name",
+    "track_title",
+    "metric_name",
+    "metric_value",
+    "source_name",
+    "reference",
+)
 _PLATFORM_ACTIVITY_COLUMNS = (
     "id",
     "source_name",
@@ -96,6 +115,8 @@ __all__ = (
     "_ASCAP_INTERNATIONAL_INCOMING_COLUMNS",
     "_ASCAP_LAYOUT_A_COLUMNS",
     "_ASCAP_LAYOUT_B_COLUMNS",
+    "_MARKET_TREND_COLUMNS",
+    "_PERFORMANCE_TERRITORY_COLUMNS",
     "_PLATFORM_ACTIVITY_COLUMNS",
     "_PLAYLIST_PLACEMENT_COLUMNS",
     "Path",
@@ -107,8 +128,10 @@ __all__ = (
     "_column_name",
     "_escape_xml",
     "_inline_string_cell",
+    "_market_trend_row",
     "_matching_records",
     "_matching_rows",
+    "_performance_territory_row",
     "_platform_activity_row",
     "_playlist_placement_row",
     "_record",
@@ -116,6 +139,8 @@ __all__ = (
     "_royalty_row",
     "_write_csv",
     "_write_json",
+    "_write_market_trend_csv",
+    "_write_performance_territory_csv",
     "_write_platform_activity_csv",
     "_write_playlist_placement_csv",
     "_write_table",
@@ -136,6 +161,14 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 
 def _write_playlist_placement_csv(path: Path, rows: list[dict[str, str]]) -> None:
     _write_table(path, _PLAYLIST_PLACEMENT_COLUMNS, rows)
+
+
+def _write_market_trend_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    _write_table(path, _MARKET_TREND_COLUMNS, rows)
+
+
+def _write_performance_territory_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    _write_table(path, _PERFORMANCE_TERRITORY_COLUMNS, rows)
 
 
 def _write_platform_activity_csv(path: Path, rows: list[dict[str, str]]) -> None:
@@ -196,6 +229,46 @@ def _column_name(index: int) -> str:
         index, remainder = divmod(index - 1, 26)
         name = chr(ord("A") + remainder) + name
     return name
+
+
+def _market_trend_row(
+    *,
+    territory: str = "Brazil",
+    genre: str = "Progressive Metal",
+    metric_name: str = "trend_strength",
+    metric_value: str = "80",
+    source_name: str = "market-trends",
+) -> dict[str, str]:
+    return {
+        "observed_at": "2026-07-23",
+        "territory": territory,
+        "genre": genre,
+        "metric_name": metric_name,
+        "metric_value": metric_value,
+        "source_name": source_name,
+        "reference": "private-market-trend-reference",
+    }
+
+
+def _performance_territory_row(
+    *,
+    territory: str = "Brazil",
+    artist_name: str = "PRIVATE_ARTIST",
+    track_title: str = "PRIVATE_TRACK",
+    metric_name: str = "territory_performance",
+    metric_value: str = "20",
+    source_name: str = "artist-analytics",
+) -> dict[str, str]:
+    return {
+        "observed_at": "2026-07-23",
+        "territory": territory,
+        "artist_name": artist_name,
+        "track_title": track_title,
+        "metric_name": metric_name,
+        "metric_value": metric_value,
+        "source_name": source_name,
+        "reference": "private-performance-reference",
+    }
 
 
 def _matching_records() -> list[dict[str, object]]:

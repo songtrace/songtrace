@@ -19,9 +19,52 @@ from songtrace.providers import (
     SpotifyPlaylistTrackMembership,
     SpotifyTrackMetadata,
     SpotifyUserTokenExchangeStatus,
+    TerritoryMarketOpportunityReport,
 )
 
 console = Console()
+
+
+def print_territory_market_opportunity_text_result(
+    report: TerritoryMarketOpportunityReport, *, include_opportunities: bool
+) -> None:
+    console.print("[bold]SongTrace Territory Market Opportunity Gap Report[/bold]")
+    console.print()
+    console.print(f"Scanned market trend rows: {report.scanned_market_trend_rows}")
+    console.print(f"Scanned performance rows: {report.scanned_performance_rows}")
+    console.print(f"Matched market trend rows: {report.matched_market_trend_rows}")
+    console.print(f"Matched performance rows: {report.matched_performance_rows}")
+    console.print(f"Opportunities: {report.opportunity_count}")
+    console.print()
+    console.print("[bold]Missing evidence / next validation[/bold]")
+    if report.missing_evidence:
+        for evidence_type in report.missing_evidence:
+            console.print(f"- {evidence_type}")
+    else:
+        console.print("- none")
+
+    if include_opportunities:
+        console.print()
+        console.print("[bold]Opportunity candidates[/bold]")
+        if report.opportunities:
+            for opportunity in report.opportunities:
+                console.print(f"{opportunity.rank}. {opportunity.territory} / {opportunity.genre}")
+                console.print(f"   Opportunity score: {opportunity.opportunity_score:.2f}")
+                console.print(f"   Trend score: {opportunity.trend_score:.2f}")
+                console.print(f"   Performance score: {opportunity.performance_score:.2f}")
+                console.print(f"   Gap score: {opportunity.gap_score:.2f}")
+                console.print(f"   Confidence: {opportunity.confidence}")
+                console.print("   Recommended actions:")
+                for action in opportunity.recommended_actions:
+                    console.print(f"   - {action}")
+        else:
+            console.print("- none: 0")
+
+
+def print_territory_market_opportunity_json_result(
+    report: TerritoryMarketOpportunityReport, *, include_opportunities: bool
+) -> None:
+    print(report.to_json(include_opportunities=include_opportunities))
 
 
 def print_music_data_provider_ranking_text_result(

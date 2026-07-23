@@ -73,6 +73,11 @@ from songtrace.providers.spotify_track_metadata_export import (
     spotify_track_metadata_raw_records_to_json_text,
     spotify_track_metadata_to_raw_record,
 )
+from songtrace.providers.territory_market_opportunity import (
+    TerritoryMarketOpportunity,
+    TerritoryMarketOpportunityReport,
+    summarize_territory_market_opportunities,
+)
 
 __all__ = [
     "SPOTIFY_CLIENT_ID_ENV",
@@ -103,6 +108,8 @@ __all__ = [
     "SpotifyPlaylistTrackMembership",
     "SpotifyTrackMetadata",
     "SpotifyUserTokenExchangeStatus",
+    "TerritoryMarketOpportunity",
+    "TerritoryMarketOpportunityReport",
     "build_spotify_authorization_url",
     "check_spotify_playlist_access",
     "diagnose_spotify_playlist_items",
@@ -120,6 +127,7 @@ __all__ = [
     "summarize_ascap_music_event",
     "summarize_ascap_platform_sources",
     "summarize_ascap_work",
+    "summarize_territory_market_opportunities",
     "validate_spotify_api_access",
     "validate_spotify_environment",
 ]

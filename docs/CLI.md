@@ -22,6 +22,58 @@ For machine-readable output:
 uv run songtrace rank-music-data-providers --output json
 ```
 
+### `territory-market-opportunity-gap`
+
+Compare provider-neutral territory market trend evidence with artist or track territory performance evidence to identify potential expansion gaps.
+
+```sh
+uv run songtrace territory-market-opportunity-gap market-trends.csv territory-performance.csv
+```
+
+The market trend CSV must include these columns:
+
+```text
+observed_at,territory,genre,metric_name,metric_value,source_name,reference
+```
+
+The performance CSV must include these columns:
+
+```text
+observed_at,territory,metric_name,metric_value,source_name,reference
+```
+
+Additional performance columns such as `artist_name` or `track_title` are allowed but are not printed by the default report. Metric values are interpreted as provider-neutral scores where higher market trend values mean stronger local market opportunity and higher performance values mean the artist or track already has more traction in that territory.
+
+By default, output is private-safe and prints aggregate counts plus missing evidence guidance without exposing territory, genre, artist, track, source, reference, or row-level values.
+
+For local exploratory analysis, opt in to ranked opportunity candidates:
+
+```sh
+uv run songtrace territory-market-opportunity-gap market-trends.csv territory-performance.csv \
+  --genre "Progressive Metal" \
+  --include-opportunities
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace territory-market-opportunity-gap market-trends.csv territory-performance.csv \
+  --genre "Progressive Metal" \
+  --include-opportunities \
+  --output json
+```
+
+Useful thresholds:
+
+```sh
+uv run songtrace territory-market-opportunity-gap market-trends.csv territory-performance.csv \
+  --minimum-trend-score 60 \
+  --maximum-performance-score 35 \
+  --limit 5
+```
+
+This command is local-file based and deterministic. It does not call trend APIs, scrape public sources, purchase commercial data, guarantee success, or automatically spend marketing budgets. Its purpose is to turn market/performance gaps into evidence-backed next actions such as playlist research, local media outreach, targeted advertising tests, fan community research, comparable artist analysis, and touring-market validation.
+
 ### `spotify-user-auth-url`
 
 Generate a Spotify authorization URL for local diagnostic user-token testing.

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 from typing import Annotated
 
@@ -54,6 +55,8 @@ from songtrace.presentation.cli.output import (
     print_spotify_track_metadata_text_result,
     print_spotify_user_token_exchange_json_status,
     print_spotify_user_token_exchange_text_status,
+    print_territory_market_opportunity_json_result,
+    print_territory_market_opportunity_text_result,
     print_validation_json_result,
     print_validation_text_result,
 )
@@ -73,6 +76,7 @@ from songtrace.providers import (
     summarize_ascap_music_event,
     summarize_ascap_platform_sources,
     summarize_ascap_work,
+    summarize_territory_market_opportunities,
     validate_spotify_api_access,
     validate_spotify_environment,
 )
@@ -106,6 +110,103 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+@app.command("territory-market-opportunity-gap")
+def territory_market_opportunity_gap_command(
+    market_trends_csv: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="CSV file containing provider-neutral territory market trend evidence.",
+        ),
+    ],
+    performance_csv: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help=(
+                "CSV file containing provider-neutral artist or track territory "
+                "performance evidence."
+            ),
+        ),
+    ],
+    genre: Annotated[
+        str | None,
+        typer.Option(
+            "--genre",
+            help="Optional exact genre or scene filter for market trend rows.",
+        ),
+    ] = None,
+    minimum_trend_score: Annotated[
+        float,
+        typer.Option(
+            "--minimum-trend-score",
+            help="Minimum market trend metric value required for an opportunity candidate.",
+        ),
+    ] = 50.0,
+    maximum_performance_score: Annotated[
+        float,
+        typer.Option(
+            "--maximum-performance-score",
+            help="Maximum artist or track performance metric value allowed for a gap candidate.",
+        ),
+    ] = 50.0,
+    limit: Annotated[
+        int,
+        typer.Option(
+            "--limit",
+            help="Maximum number of ranked opportunity candidates to return.",
+        ),
+    ] = 10,
+    include_opportunities: Annotated[
+        bool,
+        typer.Option(
+            "--include-opportunities",
+            help="Include opt-in territory, genre, score, confidence, and action details.",
+        ),
+    ] = False,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Find territory gaps between market trend strength and current performance."""
+
+    output_format = parse_output_format(output)
+    try:
+        report = summarize_territory_market_opportunities(
+            market_trends_csv,
+            performance_csv,
+            genre=genre,
+            minimum_trend_score=Decimal(str(minimum_trend_score)),
+            maximum_performance_score=Decimal(str(maximum_performance_score)),
+            limit=limit,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_territory_market_opportunity_text_result(
+                report,
+                include_opportunities=include_opportunities,
+            )
+        case "json":
+            print_territory_market_opportunity_json_result(
+                report,
+                include_opportunities=include_opportunities,
+            )
 
 
 @app.command("rank-music-data-providers")

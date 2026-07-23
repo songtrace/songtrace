@@ -10,6 +10,7 @@ from songtrace.providers import (
     AscapMusicEventReport,
     AscapPlatformSourcesSummary,
     AscapWorkSummary,
+    MarketTrendSourceCandidate,
     SpotifyApiAccessStatus,
     SpotifyAuthorizationUrl,
     SpotifyEnvironmentStatus,
@@ -20,9 +21,75 @@ from songtrace.providers import (
     SpotifyTrackMetadata,
     SpotifyUserTokenExchangeStatus,
     TerritoryMarketOpportunityReport,
+    market_trend_source_candidates_to_json,
 )
 
 console = Console()
+
+
+def print_market_trend_source_candidates_text_result(
+    candidates: tuple[MarketTrendSourceCandidate, ...],
+) -> None:
+    console.print("[bold]SongTrace Market Trend Source Strategy[/bold]")
+    console.print()
+    console.print(f"Sources: {len(candidates)}")
+    console.print("Purpose: choose upstream market trend evidence before deeper adapters.")
+    console.print(
+        "Note: deterministic registry only; no APIs, scraping, or private files are read."
+    )
+
+    for candidate in candidates:
+        console.print()
+        console.print(f"- {candidate.source_id}: {candidate.name}")
+        console.print(f"  Priority: {candidate.priority}")
+        console.print(f"  Category: {candidate.category}")
+        console.print(f"  Access: {candidate.access_model}")
+        console.print(f"  Strategy score: {candidate.strategy_score}")
+        console.print(
+            f"  Support: territory={candidate.territory_support}, genre={candidate.genre_support}"
+        )
+        console.print(f"  Recommended use: {candidate.recommended_use}")
+
+
+def print_market_trend_source_candidate_text_result(
+    candidate: MarketTrendSourceCandidate,
+) -> None:
+    console.print("[bold]SongTrace Market Trend Source Candidate[/bold]")
+    console.print()
+    console.print(f"Source ID: {candidate.source_id}")
+    console.print(f"Name: {candidate.name}")
+    console.print(f"Priority: {candidate.priority}")
+    console.print(f"Category: {candidate.category}")
+    console.print(f"Access model: {candidate.access_model}")
+    console.print(f"Strategy score: {candidate.strategy_score}")
+    console.print(f"Territory support: {candidate.territory_support}")
+    console.print(f"Genre support: {candidate.genre_support}")
+    console.print(f"Freshness: {candidate.freshness}")
+    console.print(f"Historical depth: {candidate.historical_depth}")
+    console.print(f"Provenance strength: {candidate.provenance_strength}")
+    console.print(f"Cost level: {candidate.cost_level}")
+    console.print(f"Legal/terms risk: {candidate.legal_terms_risk}")
+    console.print()
+    console.print("[bold]Recommended use[/bold]")
+    console.print(candidate.recommended_use)
+    console.print()
+    console.print("[bold]Limitations[/bold]")
+    for limitation in candidate.limitations:
+        console.print(f"- {limitation}")
+    console.print()
+    console.print("[bold]Next validation actions[/bold]")
+    for action in candidate.next_validation_actions:
+        console.print(f"- {action}")
+
+
+def print_market_trend_source_candidates_json_result(
+    candidates: tuple[MarketTrendSourceCandidate, ...],
+) -> None:
+    print(market_trend_source_candidates_to_json(candidates))
+
+
+def print_market_trend_source_candidate_json_result(candidate: MarketTrendSourceCandidate) -> None:
+    print(market_trend_source_candidates_to_json((candidate,)))
 
 
 def print_territory_market_opportunity_text_result(

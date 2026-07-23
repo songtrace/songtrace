@@ -35,6 +35,10 @@ from songtrace.presentation.cli.output import (
     print_ascap_work_summary_text_result,
     print_investigation_json_result,
     print_investigation_text_result,
+    print_market_trend_source_candidate_json_result,
+    print_market_trend_source_candidate_text_result,
+    print_market_trend_source_candidates_json_result,
+    print_market_trend_source_candidates_text_result,
     print_music_data_provider_ranking_json_result,
     print_music_data_provider_ranking_text_result,
     print_spotify_api_access_json_status,
@@ -66,6 +70,8 @@ from songtrace.providers import (
     diagnose_spotify_playlist_items,
     discover_spotify_playlist_track_memberships_for_queries,
     exchange_spotify_authorization_code,
+    get_market_trend_source_candidate,
+    list_market_trend_source_candidates,
     lookup_spotify_playlist_track_membership,
     lookup_spotify_track_metadata,
     profile_ascap_csv_layout,
@@ -77,6 +83,7 @@ from songtrace.providers import (
     summarize_ascap_platform_sources,
     summarize_ascap_work,
     summarize_territory_market_opportunities,
+    validate_market_trend_source_registry,
     validate_spotify_api_access,
     validate_spotify_environment,
 )
@@ -110,6 +117,110 @@ def main(
     ] = None,
 ) -> None:
     """SongTrace song investigation engine."""
+
+
+def _parse_market_trend_priority(priority: str | None) -> str | None:
+    if priority is None:
+        return None
+    normalized_priority = priority.strip().upper()
+    if normalized_priority not in {"P0", "P1", "P2"}:
+        raise ValueError("priority must be P0, P1, or P2")
+    return normalized_priority
+
+
+def _parse_market_trend_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+    normalized_category = category.strip().casefold()
+    supported_categories = {
+        "commercial_music_intelligence",
+        "comparable_artist_signal",
+        "live_touring_demand",
+        "media_press_radio",
+        "playlist_ecosystem",
+        "royalty_outcome_evidence",
+        "search_intent",
+        "social_velocity",
+        "streaming_chart_demand",
+    }
+    if normalized_category not in supported_categories:
+        raise ValueError(f"unsupported market trend source category: {category}")
+    return normalized_category
+
+
+@app.command("market-trend-sources")
+def market_trend_sources_command(
+    priority: Annotated[
+        str | None,
+        typer.Option(
+            "--priority",
+            help="Optional source priority filter: P0, P1, or P2.",
+        ),
+    ] = None,
+    category: Annotated[
+        str | None,
+        typer.Option(
+            "--category",
+            help="Optional signal category filter.",
+        ),
+    ] = None,
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """List market trend source candidates before deeper opportunity development."""
+
+    output_format = parse_output_format(output)
+    try:
+        validate_market_trend_source_registry()
+        candidates = list_market_trend_source_candidates(
+            priority=_parse_market_trend_priority(priority),
+            category=_parse_market_trend_category(category),
+        )
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_market_trend_source_candidates_text_result(candidates)
+        case "json":
+            print_market_trend_source_candidates_json_result(candidates)
+
+
+@app.command("market-trend-source")
+def market_trend_source_command(
+    source_id: Annotated[
+        str,
+        typer.Argument(help="Market trend source ID to inspect."),
+    ],
+    output: Annotated[
+        str,
+        typer.Option(
+            "--output",
+            help="Output format: text or json.",
+        ),
+    ] = "text",
+) -> None:
+    """Show one market trend source candidate and its validation strategy."""
+
+    output_format = parse_output_format(output)
+    try:
+        validate_market_trend_source_registry()
+        candidate = get_market_trend_source_candidate(source_id)
+    except ValueError as error:
+        print_source_error(error)
+        raise typer.Exit(1) from error
+
+    match output_format:
+        case "text":
+            print_market_trend_source_candidate_text_result(candidate)
+        case "json":
+            print_market_trend_source_candidate_json_result(candidate)
 
 
 @app.command("territory-market-opportunity-gap")

@@ -22,6 +22,13 @@ from songtrace.providers.ascap_work_summary import (
     summarize_ascap_platform_sources,
     summarize_ascap_work,
 )
+from songtrace.providers.market_trend_source_registry import (
+    MarketTrendSourceCandidate,
+    get_market_trend_source_candidate,
+    list_market_trend_source_candidates,
+    market_trend_source_candidates_to_json,
+    validate_market_trend_source_registry,
+)
 from songtrace.providers.spotify_api_access import (
     SpotifyApiAccessStatus,
     validate_spotify_api_access,
@@ -97,6 +104,7 @@ __all__ = [
     "AscapPlatformSourceSummary",
     "AscapPlatformSourcesSummary",
     "AscapWorkSummary",
+    "MarketTrendSourceCandidate",
     "SpotifyApiAccessStatus",
     "SpotifyAuthorizationUrl",
     "SpotifyEnvironmentStatus",
@@ -116,8 +124,11 @@ __all__ = [
     "discover_spotify_playlist_track_memberships",
     "discover_spotify_playlist_track_memberships_for_queries",
     "exchange_spotify_authorization_code",
+    "get_market_trend_source_candidate",
+    "list_market_trend_source_candidates",
     "lookup_spotify_playlist_track_membership",
     "lookup_spotify_track_metadata",
+    "market_trend_source_candidates_to_json",
     "profile_ascap_csv_layout",
     "spotify_connector_descriptor",
     "spotify_playlist_membership_to_raw_record",
@@ -128,6 +139,7 @@ __all__ = [
     "summarize_ascap_platform_sources",
     "summarize_ascap_work",
     "summarize_territory_market_opportunities",
+    "validate_market_trend_source_registry",
     "validate_spotify_api_access",
     "validate_spotify_environment",
 ]

@@ -22,6 +22,60 @@ For machine-readable output:
 uv run songtrace rank-music-data-providers --output json
 ```
 
+### `market-trend-sources`
+
+List candidate upstream market trend evidence sources before building deeper opportunity-engine adapters.
+
+```sh
+uv run songtrace market-trend-sources
+```
+
+This command is a deterministic source strategy registry. It does not call APIs, scrape websites, read private files, purchase commercial data, or claim any one source proves causality. Its purpose is to help decide where market trend evidence can realistically come from and which sources deserve manual validation or future connector work.
+
+Filter by source priority or signal category:
+
+```sh
+uv run songtrace market-trend-sources --priority P0
+uv run songtrace market-trend-sources --category search_intent
+uv run songtrace market-trend-sources --priority P1 --category live_touring_demand
+```
+
+For machine-readable output:
+
+```sh
+uv run songtrace market-trend-sources --output json
+```
+
+### `market-trend-source`
+
+Inspect one market trend source candidate and its validation strategy.
+
+```sh
+uv run songtrace market-trend-source google_trends
+```
+
+The detail view includes:
+
+- signal category
+- access model
+- priority
+- territory and genre support
+- freshness and historical depth
+- provenance strength
+- cost level
+- legal/terms risk
+- recommended use
+- limitations
+- next validation actions
+
+For machine-readable output:
+
+```sh
+uv run songtrace market-trend-source google_trends --output json
+```
+
+The current strategy is to validate sources manually first, then build adapters only for sources with enough access, provenance, freshness, territory/genre usefulness, and legal practicality. This keeps the Market Opportunity Engine evidence-led rather than connector-led.
+
 ### `territory-market-opportunity-gap`
 
 Compare provider-neutral territory market trend evidence with artist or track territory performance evidence to identify potential expansion gaps.
